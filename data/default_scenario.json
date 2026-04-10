@@ -1,0 +1,32 @@
+{
+  "periods": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+  "demand": [420, 390, 450, 510, 580, 650, 700, 670, 580, 500, 450, 380],
+  "initial_inventory": 100,
+  "initial_workforce": 40,
+  "productivity": 15,
+  "costs": {
+    "regular_time": 1200,
+    "hiring": 800,
+    "firing": 1500,
+    "holding": 50,
+    "backorder": 90,
+    "overtime": 1800,
+    "subcontracting": 2000
+  },
+  "capacity": {
+    "max_workforce": 80,
+    "max_overtime_fraction": 0.25,
+    "max_subcontract_per_period": 200
+  },
+  "presets": {
+    "High Seasonality": {
+      "demand": [200, 210, 350, 520, 700, 820, 800, 750, 560, 380, 250, 210]
+    },
+    "Stable Demand": {
+      "demand": [490, 500, 505, 495, 500, 510, 500, 495, 505, 500, 490, 505]
+    },
+    "Demand Spike": {
+      "demand": [400, 410, 420, 850, 420, 410, 400, 410, 420, 400, 410, 420]
+    }
+  }
+}

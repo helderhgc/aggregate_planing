@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aggregate Planning — Theory &amp; Methods</title>
+
+  <!-- MathJax for LaTeX rendering -->
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        tags: 'ams'
+      },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+
+  <style>
+    :root {
+      --blue:    #1f77b4;
+      --orange:  #e67e22;
+      --green:   #27ae60;
+      --red:     #c0392b;
+      --purple:  #8e44ad;
+      --dark:    #1a1a2e;
+      --light-bg:#f0f4f8;
+      --card-bg: #ffffff;
+      --border:  #dce3ea;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.75;
+      color: var(--dark);
+      background: var(--light-bg);
+    }
+
+    /* ── TOP HEADER ── */
+    header {
+      background: var(--blue);
+      color: #fff;
+      padding: 36px 48px 28px;
+    }
+    header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 6px; }
+    header p  { font-size: 1rem; opacity: 0.9; }
+    header .author {
+      margin-top: 14px;
+      font-size: 0.88rem;
+      opacity: 0.8;
+      border-top: 1px solid rgba(255,255,255,0.3);
+      padding-top: 10px;
+    }
+
+    /* ── LAYOUT ── */
+    .page { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* ── NAVIGATION ── */
+    nav {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 24px;
+      margin-bottom: 40px;
+    }
+    nav h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;
+              color: #888; margin-bottom: 10px; }
+    nav ol { padding-left: 22px; }
+    nav li { margin: 5px 0; }
+    nav a  { color: var(--blue); text-decoration: none; font-weight: 500; }
+    nav a:hover { text-decoration: underline; }
+
+    /* ── SECTION CARDS ── */
+    .section {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 36px 40px;
+      margin-bottom: 36px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 2px solid var(--border);
+    }
+    .badge {
+      background: var(--blue);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .badge.orange { background: var(--orange); }
+    .badge.green  { background: var(--green);  }
+    .badge.red    { background: var(--red);    }
+    .badge.purple { background: var(--purple); }
+    .badge.dark   { background: var(--dark);   }
+
+    h2 { font-size: 1.45rem; color: var(--dark); }
+    h3 { font-size: 1.1rem;  color: var(--blue); margin: 22px 0 8px; }
+    h4 { font-size: 0.95rem; color: #444;        margin: 16px 0 6px; font-weight: 600; }
+
+    p  { margin-bottom: 10px; }
+    ul, ol { padding-left: 22px; margin-bottom: 10px; }
+    li { margin: 4px 0; }
+
+    /* ── MATH BLOCKS ── */
+    .math-block {
+      background: #f8fafd;
+      border-left: 4px solid var(--blue);
+      border-radius: 0 8px 8px 0;
+      padding: 16px 20px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .math-block.orange { border-left-color: var(--orange); }
+    .math-block.green  { border-left-color: var(--green);  }
+    .math-block.red    { border-left-color: var(--red);    }
+    .math-block.purple { border-left-color: var(--purple); }
+
+    /* ── INFO / NOTE BOXES ── */
+    .note {
+      background: #eaf4fb;
+      border-left: 4px solid var(--blue);
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      margin: 14px 0;
+      font-size: 0.93rem;
+    }
+    .note.warning {
+      background: #fef9e7;
+      border-left-color: var(--orange);
+    }
+    .note.tip {
+      background: #eafaf1;
+      border-left-color: var(--green);
+    }
+    .note strong { font-weight: 700; }
+
+    /* ── TABLES ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 0.93rem;
+    }
+    th {
+      background: var(--blue);
+      color: #fff;
+      padding: 10px 14px;
+      text-align: left;
+    }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); }
+    tr:nth-child(even) td { background: #f8fafd; }
+    tr:hover td { background: #eaf4fb; }
+
+    /* ── VARIABLE TABLE ── */
+    .var-table th { background: #34495e; }
+
+    /* ── CONSTRAINT BLOCK ── */
+    .constraint {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin: 10px 0;
+      background: #fafbfc;
+    }
+    .constraint .label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--blue);
+      margin-bottom: 6px;
+    }
+
+    /* ── STRATEGY COMPARISON ── */
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .compare-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      background: #fafbfc;
+    }
+    .compare-card h4 { margin-top: 0; color: var(--blue); font-size: 1rem; }
+    .compare-card .pro  { color: var(--green); }
+    .compare-card .con  { color: var(--red);   }
+
+    /* ── EXAMPLE BOX ── */
+    .example {
+      background: #fffdf0;
+      border: 1px solid #f0c040;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin: 20px 0;
+    }
+    .example h4 { color: #b7770d; margin-top: 0; }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      font-size: 0.82rem;
+      color: #888;
+      margin-top: 60px;
+      padding: 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    @media print {
+      body { background: #fff; }
+      .section { box-shadow: none; border: 1px solid #ccc; }
+      header { background: #1f77b4 !important; -webkit-print-color-adjust: exact; }
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- ═══════════════════════════════════════════ HEADER ═══ -->
+<header>
+  <h1>Aggregate Planning — Theory &amp; Methods</h1>
+  <p>Production Planning &amp; Control · Comprehensive Reference Guide</p>
+  <div class="author">
+    👨‍🏫 <strong>Prof. Helder Costa</strong> &nbsp;·&nbsp;
+    <a href="mailto:heldergc@id.uff.br" style="color:#cce5ff;">heldergc@id.uff.br</a>
+    &nbsp;·&nbsp; Universidade Federal Fluminense
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════ PAGE ═══ -->
+<div class="page">
+
+  <!-- NAV -->
+  <nav>
+    <h3>Contents</h3>
+    <ol>
+      <li><a href="#intro">What is Aggregate Planning?</a></li>
+      <li><a href="#notation">Notation &amp; Input Data</a></li>
+      <li><a href="#chase">Chase Demand Strategy</a></li>
+      <li><a href="#level">Level Production Strategy</a></li>
+      <li><a href="#mixed">Mixed / Hybrid Strategy</a></li>
+      <li><a href="#lp">Linear Programming Model</a></li>
+      <li><a href="#transport">Transportation Method</a></li>
+      <li><a href="#te">Trial-and-Error / Spreadsheet Method</a></li>
+      <li><a href="#comparison">Strategy Comparison</a></li>
+      <li><a href="#references">References</a></li>
+    </ol>
+  </nav>
+
+  <!-- ══════════════════════ 1. INTRO ══════════════════════ -->
+  <div class="section" id="intro">
+    <div class="section-header">
+      <span class="badge">1</span>
+      <h2>What is Aggregate Planning?</h2>
+    </div>
+
+    <p>
+      <strong>Aggregate planning</strong> is the process of determining the optimal production, workforce,
+      and inventory levels over a medium-term planning horizon (typically 3 to 18 months), treating all
+      products as a single <em>aggregate</em> unit (e.g., tons of output, standard hours of work).
+    </p>
+    <p>
+      The goal is to satisfy forecasted demand at minimum cost by appropriately combining the
+      available <strong>capacity adjustment levers</strong>:
+    </p>
+    <ul>
+      <li><strong>Workforce</strong> — hiring, firing, and temporarily laying off workers</li>
+      <li><strong>Production rate</strong> — overtime, undertime, or shift changes</li>
+      <li><strong>Inventory</strong> — building stock in advance of peak demand</li>
+      <li><strong>Backorders</strong> — allowing demand to be satisfied in a later period</li>
+      <li><strong>Subcontracting</strong> — outsourcing production to external suppliers</li>
+    </ul>
+
+    <div class="note">
+      <strong>Scope:</strong> Aggregate planning bridges <em>long-range capacity planning</em>
+      (facilities, major equipment) and <em>short-range scheduling</em> (job sequencing, lot sizing).
+      It is the medium-range layer of the manufacturing planning and control hierarchy.
+    </div>
+  </div>
+
+  <!-- ══════════════════════ 2. NOTATION ══════════════════════ -->
+  <div class="section" id="notation">
+    <div class="section-header">
+      <span class="badge">2</span>
+      <h2>Notation &amp; Input Data</h2>
+    </div>
+
+    <h3>Planning Horizon</h3>
+    <p>
+      There are $T$ planning periods indexed $t = 1, 2, \ldots, T$.
+      Each period is typically one month, but could be any equal-length interval.
+    </p>
+
+    <h3>Decision Variables</h3>
+    <table class="var-table">
+      <thead>
+        <tr><th>Symbol</th><th>Definition</th><th>Units</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>$P_t$</td><td>Total production in period $t$</td><td>Units</td></tr>
+        <tr><td>$W_t$</td><td>Workforce level at end of period $t$</td><td>Workers</td></tr>
+        <tr><td>$H_t$</td><td>Workers hired at the beginning of period $t$</td><td>Workers</td></tr>
+        <tr><td>$F_t$</td><td>Workers fired (laid off) at beginning of period $t$</td><td>Workers</td></tr>
+        <tr><td>$I_t$</td><td>Ending inventory after period $t$ (negative = backorder)</td><td>Units</td></tr>
+        <tr><td>$O_t$</td><td>Overtime production in period $t$</td><td>Units</td></tr>
+        <tr><td>$S_t$</td><td>Subcontracted units in period $t$</td><td>Units</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Parameters (given data)</h3>
+    <table>
+      <thead>
+        <tr><th>Symbol</th><th>Definition</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>$D_t$</td><td>Demand forecast for period $t$</td></tr>
+        <tr><td>$\rho$</td><td>Regular-time productivity (units per worker per period)</td></tr>
+        <tr><td>$c_R$</td><td>Regular-time labour cost ($ per unit produced)</td></tr>
+        <tr><td>$c_H$</td><td>Hiring cost ($ per worker hired)</td></tr>
+        <tr><td>$c_F$</td><td>Firing / layoff cost ($ per worker fired)</td></tr>
+        <tr><td>$c_I$</td><td>Inventory holding cost ($ per unit per period)</td></tr>
+        <tr><td>$c_B$</td><td>Backorder penalty cost ($ per unit per period late)</td></tr>
+        <tr><td>$c_{OT}$</td><td>Overtime cost ($ per unit produced on overtime)</td></tr>
+        <tr><td>$c_{SC}$</td><td>Subcontracting cost ($ per unit subcontracted)</td></tr>
+        <tr><td>$W_0, I_0$</td><td>Initial workforce and inventory at $t=0$</td></tr>
+        <tr><td>$\bar{W}$</td><td>Maximum allowable workforce</td></tr>
+        <tr><td>$\alpha$</td><td>Maximum overtime fraction (e.g., 0.25 = 25% of regular capacity)</td></tr>
+        <tr><td>$\bar{S}$</td><td>Maximum subcontract volume per period</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Total Cost Function</h3>
+    <div class="math-block">
+      $$\text{Total Cost} = \sum_{t=1}^{T} \Bigl[
+        c_R P_t + c_H H_t + c_F F_t
+        + c_I \max(I_t,\,0) + c_B \max(-I_t,\,0)
+        + c_{OT} O_t + c_{SC} S_t
+      \Bigr]$$
+    </div>
+
+    <div class="note">
+      <strong>Inventory splitting:</strong>
+      Because $I_t$ can be negative (backorder), costs are applied asymmetrically:
+      $c_I$ on the positive part and $c_B$ on the absolute value of the negative part.
+      In LP formulations this is handled by introducing $I_t^+ = \max(I_t,0)$ and
+      $I_t^- = \max(-I_t,0)$, so $I_t = I_t^+ - I_t^-$.
+    </div>
+  </div>
+
+  <!-- ══════════════════════ 3. CHASE ══════════════════════ -->
+  <div class="section" id="chase">
+    <div class="section-header">
+      <span class="badge">3</span>
+      <h2>Chase Demand Strategy</h2>
+    </div>
+
+    <p>
+      The <strong>chase strategy</strong> adjusts the workforce each period so that production
+      exactly matches the demand forecast. Inventory is kept at (approximately) zero,
+      and all variability is absorbed by hiring and firing.
+    </p>
+
+    <h3>Core Idea</h3>
+    <div class="math-block">
+      $$P_t = D_t \qquad \forall\, t$$
+    </div>
+
+    <h3>Workforce Calculation</h3>
+    <div class="math-block">
+      $$W_t = \frac{D_t}{\rho}$$
+    </div>
+    <p>where $\rho$ is the regular-time productivity (units per worker per period).</p>
+
+    <h3>Hiring and Firing</h3>
+    <div class="math-block">
+      $$H_t = \max\bigl(0,\; W_t - W_{t-1}\bigr)$$
+      $$F_t = \max\bigl(0,\; W_{t-1} - W_t\bigr)$$
+    </div>
+
+    <h3>Inventory</h3>
+    <div class="math-block">
+      $$I_t = I_{t-1} + P_t - D_t = I_{t-1} \approx 0 \quad (\text{with } I_0 \text{ consumed first})$$
+    </div>
+
+    <h3>Total Cost</h3>
+    <div class="math-block">
+      $$C_{\text{Chase}} = \sum_{t=1}^{T} \bigl(c_R D_t + c_H H_t + c_F F_t\bigr)$$
+    </div>
+
+    <div class="note warning">
+      <strong>Key trade-off:</strong> Inventory cost is minimised, but hiring &amp; firing costs can be
+      very high when demand is volatile. This strategy places the burden of uncertainty on
+      the workforce, which may also raise labour relations concerns.
+    </div>
+
+    <div class="example">
+      <h4>📌 Intuition</h4>
+      <p>
+        Imagine demand doubles in June relative to May. Under the chase strategy,
+        the workforce must nearly double — all workers above the May level must be hired at cost $c_H$
+        each. If demand then drops back in July, those same workers are fired at cost $c_F$.
+        High demand variability = high workforce churn = high cost under this strategy.
+      </p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ 4. LEVEL ══════════════════════ -->
+  <div class="section" id="level">
+    <div class="section-header">
+      <span class="badge orange">4</span>
+      <h2>Level Production Strategy</h2>
+    </div>
+
+    <p>
+      The <strong>level strategy</strong> keeps the production rate constant across all periods.
+      The workforce remains stable; demand variability is absorbed by inventory (excess production
+      is stocked) and backorders (stockouts are filled in future periods).
+    </p>
+
+    <h3>Constant Production Rate</h3>
+    <div class="math-block orange">
+      $$\bar{P} = \frac{\displaystyle\sum_{t=1}^{T} D_t}{T}$$
+    </div>
+
+    <h3>Workforce Level</h3>
+    <div class="math-block orange">
+      $$\bar{W} = \frac{\bar{P}}{\rho}$$
+    </div>
+
+    <h3>Inventory Evolution</h3>
+    <div class="math-block orange">
+      $$I_t = I_{t-1} + \bar{P} - D_t \qquad t = 1,\ldots,T$$
+    </div>
+
+    <h3>Total Cost</h3>
+    <div class="math-block orange">
+      $$C_{\text{Level}} = c_H \max(0, \bar{W} - W_0) + c_F \max(0, W_0 - \bar{W})
+        + c_R \cdot T \cdot \bar{P}
+        + c_I \sum_{t: I_t>0} I_t
+        + c_B \sum_{t: I_t<0} |I_t|$$
+    </div>
+
+    <div class="note">
+      <strong>Key trade-off:</strong> Hiring and firing costs are minimised (at most one adjustment
+      at the start of the horizon), but inventory holding and backorder costs rise when demand is
+      seasonal. This strategy favours scenarios where $c_H + c_F \gg c_I$.
+    </div>
+
+    <div class="note warning">
+      <strong>Feasibility condition:</strong> For the level strategy to avoid all backorders
+      (if backorders are not acceptable), the cumulative production must always exceed
+      cumulative demand:
+      $$I_0 + n \cdot \bar{P} \geq \sum_{t=1}^{n} D_t \qquad \forall\, n = 1,\ldots,T$$
+      If this condition fails, a higher production rate (larger workforce) or backorders must be accepted.
+    </div>
+  </div>
+
+  <!-- ══════════════════════ 5. MIXED ══════════════════════ -->
+  <div class="section" id="mixed">
+    <div class="section-header">
+      <span class="badge green">5</span>
+      <h2>Mixed / Hybrid Strategy</h2>
+    </div>
+
+    <p>
+      A <strong>mixed strategy</strong> does not restrict itself to pure chase or pure level behaviour.
+      The planner simultaneously uses <em>multiple levers</em> — partial workforce changes, overtime,
+      subcontracting, and some inventory — to minimise total cost.
+    </p>
+
+    <h3>Formulation</h3>
+    <div class="math-block green">
+      $$P_t = \underbrace{W_t \cdot \rho}_{\text{Regular-time}} + \underbrace{O_t}_{\text{Overtime}} + \underbrace{S_t}_{\text{Subcontract}}$$
+    </div>
+
+    <div class="math-block green">
+      $$I_t = I_{t-1} + P_t - D_t$$
+    </div>
+
+    <div class="math-block green">
+      $$W_t = W_{t-1} + H_t - F_t$$
+    </div>
+
+    <h3>Practical Approach</h3>
+    <p>In practice a "target workforce" $W^*$ is chosen (often the average):
+    $$W^* = \frac{1}{T}\sum_{t=1}^{T} \frac{D_t}{\rho}$$
+    The workforce is held at $W^*$ each period, and remaining gaps are filled first with overtime and
+    then with subcontracting:
+    </p>
+    <div class="math-block green">
+      $$\text{Gap}_t = \max\bigl(0,\; D_t - I_{t-1} - W^* \cdot \rho\bigr)$$
+      $$O_t = \min\bigl(\text{Gap}_t,\; \alpha \cdot W^* \cdot \rho\bigr)$$
+      $$S_t = \min\bigl(\text{Gap}_t - O_t,\; \bar{S}\bigr)$$
+    </div>
+
+    <div class="note tip">
+      <strong>Why mixed?</strong> When $c_H, c_F$ are moderate (not extreme) and overtime/subcontract
+      costs are also moderate, no pure strategy dominates. The optimal split depends on the specific
+      cost ratios — which is exactly why the LP model is the correct tool to find it.
+    </div>
+  </div>
+
+  <!-- ══════════════════════ 6. LP ══════════════════════ -->
+  <div class="section" id="lp">
+    <div class="section-header">
+      <span class="badge red">6</span>
+      <h2>Linear Programming Model</h2>
+    </div>
+
+    <p>
+      The LP model finds the <em>globally optimal</em> aggregate plan by formulating the problem as a
+      linear program. Unlike heuristic strategies, LP guarantees the minimum-cost solution subject to
+      all stated constraints.
+    </p>
+
+    <h3>6.1 Decision Variables</h3>
+    <p>For each period $t = 1, \ldots, T$:</p>
+    <table class="var-table">
+      <thead>
+        <tr><th>Variable</th><th>Meaning</th><th>Domain</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>$P_t$</td><td>Total production (RT + OT + Sub)</td><td>$\geq 0$</td></tr>
+        <tr><td>$W_t$</td><td>Workforce level</td><td>$\geq 0$</td></tr>
+        <tr><td>$H_t$</td><td>Workers hired</td><td>$\geq 0$</td></tr>
+        <tr><td>$F_t$</td><td>Workers fired</td><td>$\geq 0$</td></tr>
+        <tr><td>$I_t^+$</td><td>Positive inventory (holding)</td><td>$\geq 0$</td></tr>
+        <tr><td>$I_t^-$</td><td>Negative inventory (backorder)</td><td>$\geq 0$</td></tr>
+        <tr><td>$O_t$</td><td>Overtime units</td><td>$\geq 0$</td></tr>
+        <tr><td>$S_t$</td><td>Subcontracted units</td><td>$\geq 0$</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note">
+      The inventory is split into $I_t^+$ (excess stock) and $I_t^-$ (backorder quantity) so that
+      different costs ($c_I$ and $c_B$) can be applied to each part within the LP framework:
+      $I_t = I_t^+ - I_t^-$.
+    </div>
+
+    <h3>6.2 Objective Function</h3>
+    <div class="math-block red">
+      $$\min\; Z = \sum_{t=1}^{T} \Bigl[
+        \frac{c_R}{\rho}\, P_t
+        \;+\; c_H H_t
+        \;+\; c_F F_t
+        \;+\; c_I I_t^+
+        \;+\; c_B I_t^-
+        \;+\; c_{OT} O_t
+        \;+\; c_{SC} S_t
+      \Bigr] \tag{OF}$$
+    </div>
+
+    <h3>6.3 Constraints</h3>
+
+    <div class="constraint">
+      <div class="label">Inventory Balance (demand satisfaction)</div>
+      $$I_t^+ - I_t^- = I_{t-1}^+ - I_{t-1}^- + P_t - D_t \qquad \forall\, t \tag{C1}$$
+      <p style="margin-top:8px;font-size:0.9rem;">
+        Equivalently, with $I_0 = I_0^+ $ (given initial inventory):
+        all demand must be met, either from production or from inventory,
+        with possible backorders.
+      </p>
+    </div>
+
+    <div class="constraint">
+      <div class="label">Workforce Balance</div>
+      $$W_t = W_{t-1} + H_t - F_t \qquad \forall\, t \tag{C2}$$
+      <p style="margin-top:8px;font-size:0.9rem;">
+        The workforce in period $t$ equals last period's workforce plus hires minus fires.
+      </p>
+    </div>
+
+    <div class="constraint">
+      <div class="label">Regular-Time Capacity</div>
+      $$P_t - O_t - S_t \leq W_t \cdot \rho \qquad \forall\, t \tag{C3}$$
+      <p style="margin-top:8px;font-size:0.9rem;">
+        Regular-time production (total production minus overtime and subcontract) cannot exceed
+        workforce capacity.
+      </p>
+    </div>
+
+    <div class="constraint">
+      <div class="label">Overtime Capacity</div>
+      $$O_t \leq \alpha \cdot W_t \cdot \rho \qquad \forall\, t \tag{C4}$$
+    </div>
+
+    <div class="constraint">
+      <div class="label">Subcontracting Capacity</div>
+      $$S_t \leq \bar{S} \qquad \forall\, t \tag{C5}$$
+    </div>
+
+    <div class="constraint">
+      <div class="label">Maximum Workforce</div>
+      $$W_t \leq \bar{W} \qquad \forall\, t \tag{C6}$$
+    </div>
+
+    <div class="constraint">
+      <div class="label">Non-negativity</div>
+      $$P_t,\, W_t,\, H_t,\, F_t,\, I_t^+,\, I_t^-,\, O_t,\, S_t \geq 0 \qquad \forall\, t \tag{C7}$$
+    </div>
+
+    <h3>6.4 Complete Compact Formulation</h3>
+    <div class="math-block red">
+      $$\begin{aligned}
+      \min\; & \sum_{t=1}^{T} \Bigl[\tfrac{c_R}{\rho} P_t + c_H H_t + c_F F_t + c_I I_t^+ + c_B I_t^- + c_{OT} O_t + c_{SC} S_t\Bigr] \\[6pt]
+      \text{s.t.}\quad
+      & I_t^+ - I_t^- = I_{t-1}^+ - I_{t-1}^- + P_t - D_t, \quad &&\forall\, t \\
+      & W_t = W_{t-1} + H_t - F_t, \quad &&\forall\, t \\
+      & P_t - O_t - S_t \leq W_t \cdot \rho, \quad &&\forall\, t \\
+      & O_t \leq \alpha\, W_t \cdot \rho, \quad &&\forall\, t \\
+      & S_t \leq \bar{S}, \quad &&\forall\, t \\
+      & W_t \leq \bar{W}, \quad &&\forall\, t \\
+      & P_t,\, W_t,\, H_t,\, F_t,\, I_t^+,\, I_t^-,\, O_t,\, S_t \geq 0, \quad &&\forall\, t
+      \end{aligned}$$
+    </div>
+
+    <h3>6.5 Shadow Prices (Dual Variables)</h3>
+    <p>
+      Each equality constraint has an associated <strong>dual variable</strong> (shadow price) $\mu_t$.
+      The shadow price of the inventory balance constraint (C1) in period $t$ represents:
+    </p>
+    <div class="math-block red">
+      $$\mu_t = \frac{\partial Z^*}{\partial D_t}$$
+    </div>
+    <p>
+      That is, $\mu_t$ is the marginal increase in the <em>optimal total cost</em> when demand in
+      period $t$ increases by one unit, holding all other parameters fixed.
+    </p>
+
+    <table>
+      <thead>
+        <tr><th>Shadow Price Value</th><th>Interpretation</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>$\mu_t = c_I$</td>
+          <td>One extra unit of demand in period $t$ costs exactly one extra period of holding —
+              the binding constraint is inventory capacity.</td>
+        </tr>
+        <tr>
+          <td>$\mu_t = c_R / \rho$</td>
+          <td>Extra demand is met by regular-time production — no bottleneck elsewhere.</td>
+        </tr>
+        <tr>
+          <td>$\mu_t = c_{OT}$</td>
+          <td>Extra demand forces overtime — workforce capacity is binding.</td>
+        </tr>
+        <tr>
+          <td>$\mu_t > c_{OT}$</td>
+          <td>Multiple constraints are simultaneously binding; extra demand is very costly.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note tip">
+      <strong>Pedagogical value:</strong> Shadow prices reveal which constraints are actually limiting
+      production in each period, and what it would cost to relax them (e.g., hiring one more worker,
+      allowing 5% more overtime). This is powerful for what-if analysis in class.
+    </div>
+
+    <h3>6.6 Worked Example</h3>
+    <div class="example">
+      <h4>📌 Numerical Example (3 periods, simplified)</h4>
+      <p><strong>Data:</strong></p>
+      <table>
+        <thead><tr><th>Period</th><th>$D_t$</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>300</td></tr>
+          <tr><td>2</td><td>500</td></tr>
+          <tr><td>3</td><td>200</td></tr>
+        </tbody>
+      </table>
+      <p>
+        $\rho = 10$ units/worker, $W_0 = 25$ workers, $I_0 = 50$ units,<br>
+        $c_R = \$1\,000$/unit, $c_H = \$500$/worker, $c_F = \$800$/worker,<br>
+        $c_I = \$30$/unit, $c_B = \$60$/unit, $c_{OT} = \$1\,500$/unit, $\bar{S} = 0$.
+      </p>
+      <p><strong>LP optimal solution (from solver):</strong></p>
+      <table>
+        <thead><tr><th>Period</th><th>$P_t$</th><th>$W_t$</th><th>$H_t$</th><th>$F_t$</th><th>$I_t$</th><th>Period Cost</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>283</td><td>28.3</td><td>3.3</td><td>0</td><td>33</td><td>$285,650</td></tr>
+          <tr><td>2</td><td>500</td><td>46.7</td><td>18.4</td><td>0</td><td>33</td><td>$509,420</td></tr>
+          <tr><td>3</td><td>167</td><td>25.0</td><td>0</td><td>21.7</td><td>0</td><td>$174,960</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:10px;">
+        The LP spreads the workforce increase across periods 1 and 2 to avoid carrying excess inventory,
+        whereas a pure chase strategy would require a larger single hire in period 2 at greater cost.
+      </p>
+    </div>
+
+    <h3>6.7 Implementation Note</h3>
+    <div class="note">
+      In the dashboard, the LP is solved by <strong>SciPy's HiGHS solver</strong>
+      (<code>scipy.optimize.linprog</code> with <code>method='highs'</code>), a state-of-the-art
+      open-source LP/MIP solver. The model has $8T$ variables and $2T$ equality + $4T$ inequality
+      constraints — typically solved in milliseconds for $T \leq 24$.
+    </div>
+  </div>
+
+  <!-- ══════════════════════ 7. TRANSPORTATION ══════════════════════ -->
+  <div class="section" id="transport">
+    <div class="section-header">
+      <span class="badge purple">7</span>
+      <h2>Transportation Method</h2>
+    </div>
+
+    <p>
+      The <strong>transportation method</strong> (also called the <em>tabular LP</em> method) casts
+      the aggregate planning problem as a classical <em>transportation problem</em> — one of the
+      most well-studied problems in operations research. This formulation can be solved by hand using
+      a structured tableau and is particularly useful for illustrating the cost trade-off between
+      producing early (and holding inventory) versus producing late.
+    </p>
+
+    <!-- 7.1 ─────────────────────────────── -->
+    <h3>7.1 The Core Idea: Production as Shipment</h3>
+    <p>
+      Think of each potential production source (regular-time in period 1, overtime in period 1, etc.)
+      as a <em>warehouse</em> with a certain supply capacity. Each period's demand is a
+      <em>customer</em> that must receive exactly $D_t$ units. The "cost of shipping" one unit from
+      source $i$ to demand period $j$ is the sum of the production cost and any holding cost
+      incurred while the unit waits in inventory between periods $i$ and $j$.
+    </p>
+    <p>
+      The objective is to find the minimum-cost allocation of production from all sources to all
+      demand periods, subject to:
+    </p>
+    <ul>
+      <li><strong>Supply constraints:</strong> each source cannot ship more than its capacity;</li>
+      <li><strong>Demand constraints:</strong> each demand period must receive exactly $D_t$ units.</li>
+    </ul>
+
+    <div class="note tip">
+      <strong>Key insight:</strong> Because production in period $i$ can only serve demand in periods
+      $j \geq i$ without incurring backorders, the cost matrix is <em>upper-triangular</em>
+      (cells below the diagonal are either forbidden or penalised by the backorder cost $c_B$).
+      The method automatically finds the optimal timing of production across the horizon.
+    </div>
+
+    <!-- 7.2 ─────────────────────────────── -->
+    <h3>7.2 Tableau Structure</h3>
+    <p>A transportation tableau for $T$ periods with regular-time (RT), overtime (OT), and
+    subcontracting (SC) has the following layout:</p>
+    <ul>
+      <li><strong>Rows</strong> — one per supply source:
+        <ul>
+          <li>Row 0: Initial inventory $I_0$ (already on hand, zero production cost);</li>
+          <li>Rows $1 \ldots T$: Regular-time production in each period (capacity $R_t$, cost $c_R$);</li>
+          <li>Rows $T+1 \ldots 2T$: Overtime production in each period (capacity $O_t^{\max}$, cost $c_{OT}$);</li>
+          <li>Rows $2T+1 \ldots 3T$: Subcontracting in each period (capacity $\bar{S}$, cost $c_{SC}$).</li>
+        </ul>
+      </li>
+      <li><strong>Columns</strong> — one per demand period $t = 1, \ldots, T$, with requirement $D_t$.</li>
+      <li><strong>Cell $(s,\,i \to j)$</strong> — the unit cost of producing one unit via source $s$
+          in period $i$ to satisfy demand in period $j$.</li>
+      <li><strong>Dummy column</strong> — if total supply exceeds total demand, a dummy column with
+          zero cost absorbs the surplus (unused capacity).</li>
+    </ul>
+
+    <!-- 7.3 ─────────────────────────────── -->
+    <h3>7.3 Cell Cost Formulas</h3>
+
+    <p><strong>Normal delivery</strong> — unit produced in period $i$, consumed in period $j \geq i$:</p>
+    <div class="math-block purple">
+      $$\text{cost}(s,\,i \to j) = c_s + c_I \cdot (j - i), \qquad j \geq i$$
+    </div>
+    <p>where $c_s \in \{c_R,\, c_{OT},\, c_{SC}\}$ and $c_I \cdot (j-i)$ is the holding cost
+    for keeping the unit in stock for $j - i$ periods.</p>
+
+    <p><strong>Backorder</strong> — unit produced in period $i$, but demand was in period $j < i$:</p>
+    <div class="math-block purple">
+      $$\text{cost}(s,\,i \to j) = c_s + c_B \cdot (i - j), \qquad j < i$$
+    </div>
+    <p>In most formulations backorders are forbidden; those cells are set to a large penalty
+    $M$ (sometimes written $\infty$) to force the solver to avoid them.</p>
+
+    <p><strong>Initial inventory</strong> row ($I_0$, produced in period 0):</p>
+    <div class="math-block purple">
+      $$\text{cost}(I_0 \to j) = c_I \cdot j, \qquad j = 1, \ldots, T$$
+    </div>
+    <p>(These units are already in stock; the only relevant cost is the holding cost from period 0
+    through period $j$.)</p>
+
+    <!-- 7.4 ─────────────────────────────── -->
+    <h3>7.4 Mathematical Formulation</h3>
+    <p>
+      Let $x_{ij} \geq 0$ be the number of units allocated from source row $i$ to demand period $j$.
+      The problem is:
+    </p>
+    <div class="math-block purple">
+      $$\min \sum_{i} \sum_{j} c_{ij}\, x_{ij}$$
+    </div>
+    <p>Subject to:</p>
+    <div class="math-block purple">
+      $$\sum_{j} x_{ij} \leq \text{supply}_i \qquad \forall\, i \quad \text{(supply capacity)}$$
+      $$\sum_{i} x_{ij} = D_j \qquad \forall\, j \quad \text{(demand satisfaction)}$$
+      $$x_{ij} \geq 0 \qquad \forall\, i, j$$
+    </div>
+    <p>This is a standard LP with a totally unimodular constraint matrix, guaranteeing
+    integer optimal solutions when all supplies and demands are integers.</p>
+
+    <!-- 7.5 ─────────────────────────────── -->
+    <h3>7.5 Solution Methods</h3>
+
+    <h4>Step 1 — Northwest Corner Method (Initial Feasible Solution)</h4>
+    <p>
+      The Northwest Corner method builds an initial feasible allocation by working from the
+      <em>top-left (northwest) cell</em> of the tableau to the <em>bottom-right</em>:
+    </p>
+    <ol>
+      <li>Start at cell $(1,1)$ — the top-left corner.</li>
+      <li>Allocate as many units as possible: $x_{ij} = \min(\text{remaining supply}_i,\;\text{remaining demand}_j)$.</li>
+      <li>If supply of row $i$ is exhausted, move <strong>down</strong> one row.</li>
+      <li>If demand of column $j$ is satisfied, move <strong>right</strong> one column.</li>
+      <li>Repeat until all demand is satisfied.</li>
+    </ol>
+    <div class="note warning">
+      <strong>Note:</strong> The Northwest Corner method ignores costs entirely — it produces a
+      feasible but generally sub-optimal solution used only as a <em>starting point</em>
+      for the improvement phase.
+    </div>
+
+    <h4>Step 2 — Stepping-Stone Method (Optimality Improvement)</h4>
+    <p>
+      Once an initial feasible solution exists, check whether any empty (unallocated) cell
+      could reduce total cost if some units were re-routed through it:
+    </p>
+    <ol>
+      <li>For each <em>empty cell</em> $(i^*, j^*)$, find a <strong>closed loop</strong> connecting
+          $(i^*, j^*)$ back to itself, alternating between occupied cells in the same row and column.</li>
+      <li>Compute the <strong>loop cost change</strong>:
+          $$\Delta_{i^*j^*} = c_{i^*j^*} - c_{i^*j_1} + c_{i_1 j_1} - c_{i_1 j^*} + \cdots$$
+          (signs alternate: $+$ for the entering cell and $-$ for the departing cells).</li>
+      <li>If $\Delta_{i^*j^*} < 0$, re-routing units through that cell <em>reduces cost</em> — perform the
+          reallocation (shift as many units as the most restrictive $-$ cell allows).</li>
+      <li>Repeat until $\Delta_{ij} \geq 0$ for all empty cells → optimal solution reached.</li>
+    </ol>
+
+    <h4>Alternative: MODI Method (Modified Distribution)</h4>
+    <p>
+      The MODI (Modified Distribution) method computes the same loop cost changes more efficiently
+      by assigning dual variables $u_i$ (row) and $v_j$ (column) such that
+      $u_i + v_j = c_{ij}$ for all <em>occupied</em> cells.
+      The reduced cost of each empty cell is then simply $\bar{c}_{ij} = c_{ij} - u_i - v_j$.
+      If any $\bar{c}_{ij} < 0$, that cell enters the basis.
+    </p>
+
+    <!-- 7.6 ─────────────────────────────── -->
+    <h3>7.6 Complete Worked Example</h3>
+    <div class="example">
+      <h4>📌 Data (3 periods, RT + OT, no backorders)</h4>
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Value</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Demand: $D_1, D_2, D_3$</td><td>300, 500, 200 units</td></tr>
+          <tr><td>Initial inventory $I_0$</td><td>50 units</td></tr>
+          <tr><td>RT capacity per period $R_t$</td><td>350 units (= 35 workers × 10 units/worker)</td></tr>
+          <tr><td>OT capacity per period $O_t^{\max}$</td><td>70 units (= 20% of RT)</td></tr>
+          <tr><td>Regular-time cost $c_R$</td><td>$100 / unit</td></tr>
+          <tr><td>Overtime cost $c_{OT}$</td><td>$150 / unit</td></tr>
+          <tr><td>Holding cost $c_I$</td><td>$10 / unit / period</td></tr>
+          <tr><td>Backorders</td><td>Not allowed ($M = \$9{,}999$)</td></tr>
+        </tbody>
+      </table>
+
+      <h4 style="margin-top:20px;">Step A — Build the Cost Matrix</h4>
+      <p>Apply $\text{cost}(s,\,i \to j) = c_s + c_I \cdot (j - i)$ for each cell:</p>
+
+      <table style="font-size:0.88rem;">
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Supply</th>
+            <th style="background:#6c3483;color:#fff;">$D_1=300$</th>
+            <th style="background:#6c3483;color:#fff;">$D_2=500$</th>
+            <th style="background:#6c3483;color:#fff;">$D_3=200$</th>
+            <th style="background:#555;color:#fff;">Unused (dummy)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Initial Inv.</strong></td><td>50</td>
+            <td>$0 + 10(1) = \mathbf{10}$</td>
+            <td>$0 + 10(2) = \mathbf{20}$</td>
+            <td>$0 + 10(3) = \mathbf{30}$</td>
+            <td>0</td>
+          </tr>
+          <tr>
+            <td><strong>RT Period 1</strong></td><td>350</td>
+            <td>$100 + 10(0) = \mathbf{100}$</td>
+            <td>$100 + 10(1) = \mathbf{110}$</td>
+            <td>$100 + 10(2) = \mathbf{120}$</td>
+            <td>0</td>
+          </tr>
+          <tr>
+            <td><strong>OT Period 1</strong></td><td>70</td>
+            <td>$150 + 10(0) = \mathbf{150}$</td>
+            <td>$150 + 10(1) = \mathbf{160}$</td>
+            <td>$150 + 10(2) = \mathbf{170}$</td>
+            <td>0</td>
+          </tr>
+          <tr>
+            <td><strong>RT Period 2</strong></td><td>350</td>
+            <td style="color:#999;font-style:italic;">$M$ (backorder)</td>
+            <td>$100 + 10(0) = \mathbf{100}$</td>
+            <td>$100 + 10(1) = \mathbf{110}$</td>
+            <td>0</td>
+          </tr>
+          <tr>
+            <td><strong>OT Period 2</strong></td><td>70</td>
+            <td style="color:#999;font-style:italic;">$M$</td>
+            <td>$150 + 10(0) = \mathbf{150}$</td>
+            <td>$150 + 10(1) = \mathbf{160}$</td>
+            <td>0</td>
+          </tr>
+          <tr>
+            <td><strong>RT Period 3</strong></td><td>350</td>
+            <td style="color:#999;font-style:italic;">$M$</td>
+            <td style="color:#999;font-style:italic;">$M$</td>
+            <td>$100 + 10(0) = \mathbf{100}$</td>
+            <td>0</td>
+          </tr>
+          <tr>
+            <td><strong>OT Period 3</strong></td><td>70</td>
+            <td style="color:#999;font-style:italic;">$M$</td>
+            <td style="color:#999;font-style:italic;">$M$</td>
+            <td>$150 + 10(0) = \mathbf{150}$</td>
+            <td>0</td>
+          </tr>
+          <tr style="font-weight:700;background:#f0f4f8;">
+            <td>Total Supply</td><td>1,310</td>
+            <td colspan="4">Total Demand = 1,000 → Dummy absorbs 310 unused units</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4 style="margin-top:22px;">Step B — Northwest Corner Initial Solution</h4>
+      <p>Allocate from top-left, exhausting supply or satisfying demand at each step:</p>
+      <table style="font-size:0.88rem;">
+        <thead>
+          <tr>
+            <th>Source</th><th>Supply</th>
+            <th>$D_1=300$</th><th>$D_2=500$</th><th>$D_3=200$</th><th>Dummy=310</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Initial Inv.</td><td>50</td>
+            <td style="background:#d6eaf8;font-weight:700;">50</td>
+            <td>—</td><td>—</td><td>—</td>
+          </tr>
+          <tr>
+            <td>RT Period 1</td><td>350</td>
+            <td style="background:#d6eaf8;font-weight:700;">250</td>
+            <td style="background:#d6eaf8;font-weight:700;">100</td>
+            <td>—</td><td>—</td>
+          </tr>
+          <tr>
+            <td>OT Period 1</td><td>70</td>
+            <td>—</td>
+            <td style="background:#d6eaf8;font-weight:700;">70</td>
+            <td>—</td><td>—</td>
+          </tr>
+          <tr>
+            <td>RT Period 2</td><td>350</td>
+            <td>—</td>
+            <td style="background:#d6eaf8;font-weight:700;">330</td>
+            <td style="background:#d6eaf8;font-weight:700;">20</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>OT Period 2</td><td>70</td>
+            <td>—</td><td>—</td>
+            <td style="background:#d6eaf8;font-weight:700;">70</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>RT Period 3</td><td>350</td>
+            <td>—</td><td>—</td>
+            <td style="background:#d6eaf8;font-weight:700;">110</td>
+            <td style="background:#d6eaf8;font-weight:700;">240</td>
+          </tr>
+          <tr>
+            <td>OT Period 3</td><td>70</td>
+            <td>—</td><td>—</td><td>—</td>
+            <td style="background:#d6eaf8;font-weight:700;">70</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p style="margin-top:10px;"><strong>NW Corner cost:</strong></p>
+      <div style="background:#f8fafd;border-left:4px solid #8e44ad;border-radius:0 8px 8px 0;padding:12px 16px;margin:10px 0;">
+        $$Z_{\text{NW}} = 50(10) + 250(100) + 100(110) + 70(160) + 330(100) + 20(110) + 70(160) + 110(100) = \$137{,}200$$
+      </div>
+
+      <h4 style="margin-top:22px;">Step C — Check for Improvement (Stepping-Stone)</h4>
+      <p>
+        Examine empty cells not in the dummy column. The most promising is
+        <strong>RT Period 1 → $D_3$</strong> (cost = $120) vs. the current route
+        RT Period 1 → $D_2$ → RT Period 2 → $D_3$ (effective cost involves the loop).
+      </p>
+      <p>The loop for cell (RT1, $D_3$) is:</p>
+      <div style="background:#f8fafd;border-left:4px solid #8e44ad;border-radius:0 8px 8px 0;padding:12px 16px;margin:10px 0;">
+        $$\Delta = \underbrace{120}_{+\text{(RT1,D3)}} - \underbrace{110}_{-\text{(RT1,D2)}} + \underbrace{100}_{+\text{(RT2,D2)}} - \underbrace{110}_{-\text{(RT2,D3)}} = 0$$
+      </div>
+      <p>
+        $\Delta = 0$ means re-routing through this cell does not change cost — there are
+        multiple optimal solutions of equal cost. The solver selects the most balanced allocation.
+      </p>
+      <p>
+        After full optimisation via stepping-stone all $\Delta_{ij} \geq 0$, confirming the
+        <strong>optimal solution</strong>:
+      </p>
+
+      <h4 style="margin-top:22px;">Step D — Optimal Allocation &amp; Total Cost</h4>
+      <table style="font-size:0.88rem;">
+        <thead>
+          <tr>
+            <th>Source</th><th>→ $D_1$ (300)</th><th>→ $D_2$ (500)</th><th>→ $D_3$ (200)</th>
+            <th>Unit Cost</th><th>Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Initial Inv. (50)</td>
+            <td>50</td><td>—</td><td>—</td>
+            <td>$10</td><td>$500</td>
+          </tr>
+          <tr>
+            <td>RT Period 1 (350)</td>
+            <td>250</td><td>100</td><td>—</td>
+            <td>$100 / $110</td>
+            <td>$25,000 + $11,000 = $36,000</td>
+          </tr>
+          <tr>
+            <td>RT Period 2 (350)</td>
+            <td>—</td><td>400</td><td>200 ← pre-built</td>
+            <td>$100 / $110</td>
+            <td>$40,000 + $22,000 = $62,000</td>
+          </tr>
+          <tr>
+            <td>RT Period 3 (350)</td>
+            <td>—</td><td>—</td><td>—</td>
+            <td>—</td><td>unused (dummy)</td>
+          </tr>
+          <tr style="background:#eafaf1;font-weight:700;">
+            <td colspan="5">Optimal Total Cost</td>
+            <td>$\mathbf{\$121{,}500}$</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin-top:8px;font-size:0.9rem;color:#555;">
+        Notice that RT Period 1 ships 100 units to Period 2's demand — those units are
+        produced one period early and held at a cost of $10/unit, but this is cheaper than
+        hiring extra workers in Period 2. This is the core timing trade-off the
+        transportation method reveals automatically.
+      </p>
+    </div>
+
+    <!-- 7.7 ─────────────────────────────── -->
+    <h3>7.7 Balancing the Tableau (Supply ≠ Demand)</h3>
+    <p>
+      Transportation problems require total supply = total demand. In aggregate planning,
+      supply usually exceeds demand (there is unused capacity). Balance is achieved by adding
+      a <strong>dummy demand column</strong> with:
+    </p>
+    <ul>
+      <li>Requirement = Total Supply − Total Demand;</li>
+      <li>Cost = $0 for all cells (unused capacity has no cost).</li>
+    </ul>
+    <p>Any allocation to the dummy column represents <em>idle capacity</em> — production
+    that could have occurred but did not need to.</p>
+
+    <!-- 7.8 ─────────────────────────────── -->
+    <h3>7.8 Limitations &amp; Comparison with the LP Model</h3>
+    <table>
+      <thead>
+        <tr><th>Aspect</th><th>Transportation Method</th><th>Full LP (Section 6)</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Workforce variation</td>
+          <td>Uses a <em>fixed</em> average workforce; cannot model hiring/firing costs directly</td>
+          <td>Explicitly optimises $H_t$, $F_t$, and $W_t$ each period</td>
+        </tr>
+        <tr>
+          <td>Overtime &amp; subcontract</td>
+          <td>Modelled as separate supply rows — handled correctly</td>
+          <td>Modelled as variables with capacity constraints</td>
+        </tr>
+        <tr>
+          <td>Hiring / firing costs</td>
+          <td>Not modelled (major limitation)</td>
+          <td>Fully modelled via $c_H H_t + c_F F_t$</td>
+        </tr>
+        <tr>
+          <td>Solution by hand</td>
+          <td>Possible for small problems (Northwest Corner + stepping-stone)</td>
+          <td>Requires software (simplex has too many variables)</td>
+        </tr>
+        <tr>
+          <td>Pedagogical clarity</td>
+          <td>
+            High — the tableau makes production timing decisions visually explicit</td>
+          <td>Lower — abstract variable indexing</td>
+        </tr>
+        <tr>
+          <td>Optimal?</td>
+          <td>Optimal <em>within its assumptions</em> (fixed workforce, no hire/fire costs)</td>
+          <td>Globally optimal across all modelled costs</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note tip">
+      <strong>Teaching recommendation:</strong> Introduce the transportation method
+      <em>before</em> the LP model. Its visual tableau helps students understand the
+      inventory holding cost trade-off intuitively. Then motivate the LP as the natural
+      extension that also captures workforce adjustment costs.
+    </div>
+  </div>
+
+  <!-- ══════════════════════ 8. TRIAL AND ERROR ══════════════════════ -->
+  <div class="section" id="te">
+    <div class="section-header">
+      <span class="badge dark">8</span>
+      <h2>Trial-and-Error / Spreadsheet Method</h2>
+    </div>
+
+    <p>
+      The <strong>trial-and-error method</strong> is not an algorithm — it is a structured
+      <em>what-if analysis</em>. The planner manually specifies a feasible production plan,
+      the spreadsheet (or dashboard) calculates total cost, and the planner iterates by adjusting
+      the plan to reduce cost.
+    </p>
+
+    <h3>Spreadsheet Template</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Period</th><th>$D_t$</th><th>$P_t$</th>
+          <th>$W_t$</th><th>$H_t$</th><th>$F_t$</th>
+          <th>$I_t$</th><th>$O_t$</th><th>$S_t$</th><th>Cost$_t$</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Jan</td><td>420</td><td><em>edit</em></td>
+          <td><em>edit</em></td><td>auto</td><td>auto</td>
+          <td>auto</td><td><em>edit</em></td><td><em>edit</em></td><td>auto</td>
+        </tr>
+        <tr>
+          <td>Feb</td><td>390</td><td>…</td><td>…</td><td>…</td><td>…</td>
+          <td>…</td><td>…</td><td>…</td><td>…</td>
+        </tr>
+        <tr>
+          <td colspan="9" style="text-align:right;"><strong>Grand Total</strong></td>
+          <td><strong>auto</strong></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Feasibility Check</h3>
+    <div class="math-block">
+      $$P_t \leq W_t \cdot \rho + O_t + S_t$$
+      $$O_t \leq \alpha \cdot W_t \cdot \rho$$
+      $$S_t \leq \bar{S}$$
+    </div>
+
+    <div class="note tip">
+      <strong>Pedagogical purpose:</strong> The trial-and-error method builds intuition about
+      cost trade-offs <em>before</em> introducing LP. Students who have manually adjusted a
+      spreadsheet plan understand immediately <em>why</em> the LP solution is superior.
+    </div>
+  </div>
+
+  <!-- ══════════════════════ 9. COMPARISON ══════════════════════ -->
+  <div class="section" id="comparison">
+    <div class="section-header">
+      <span class="badge">9</span>
+      <h2>Strategy Comparison</h2>
+    </div>
+
+    <h3>Decision Framework</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Strategy</th>
+          <th>Optimal when…</th>
+          <th>Main cost driver</th>
+          <th>Workforce stability</th>
+          <th>Inventory level</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Chase</strong></td>
+          <td>$c_I \gg c_H + c_F$ and demand is smooth</td>
+          <td>Hiring &amp; firing</td>
+          <td>Low</td>
+          <td>Near zero</td>
+        </tr>
+        <tr>
+          <td><strong>Level</strong></td>
+          <td>$c_H + c_F \gg c_I$ and backorders acceptable</td>
+          <td>Holding &amp; backorder</td>
+          <td>High (stable)</td>
+          <td>High seasonal swings</td>
+        </tr>
+        <tr>
+          <td><strong>Mixed</strong></td>
+          <td>Costs are balanced; OT &amp; subcontract available</td>
+          <td>OT &amp; subcontract</td>
+          <td>Medium</td>
+          <td>Low to medium</td>
+        </tr>
+        <tr>
+          <td><strong>LP (Optimal)</strong></td>
+          <td>Always — LP finds the best of all feasible plans</td>
+          <td>Depends on cost ratios</td>
+          <td>Depends on costs</td>
+          <td>Depends on costs</td>
+        </tr>
+        <tr>
+          <td><strong>Transportation</strong></td>
+          <td>No overtime/subcontract; only RT and holding</td>
+          <td>Holding cost timing</td>
+          <td>Fixed (avg)</td>
+          <td>Low to medium</td>
+        </tr>
+        <tr>
+          <td><strong>Trial-and-Error</strong></td>
+          <td>Teaching / intuition building only</td>
+          <td>Any</td>
+          <td>User-defined</td>
+          <td>User-defined</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Cost Dominance Rule</h3>
+    <div class="math-block">
+      $$C_{\text{LP}}^* \;\leq\; C_{\text{Transport}}^* \;\leq\; \min\bigl(C_{\text{Chase}},\, C_{\text{Level}},\, C_{\text{Mixed}}\bigr)$$
+    </div>
+    <p>
+      The LP solution always dominates, because the LP feasible region contains the solutions
+      producible by all other strategies as special cases.
+    </p>
+
+    <div class="compare-grid">
+      <div class="compare-card">
+        <h4>Chase Strategy</h4>
+        <p class="pro">✔ Zero inventory cost</p>
+        <p class="pro">✔ No backorders</p>
+        <p class="con">✘ High workforce churn</p>
+        <p class="con">✘ Poor labour relations</p>
+      </div>
+      <div class="compare-card">
+        <h4>Level Strategy</h4>
+        <p class="pro">✔ Stable workforce</p>
+        <p class="pro">✔ Low hire/fire costs</p>
+        <p class="con">✘ Large inventory swings</p>
+        <p class="con">✘ Possible backorders</p>
+      </div>
+      <div class="compare-card">
+        <h4>Mixed Strategy</h4>
+        <p class="pro">✔ Flexible levers</p>
+        <p class="pro">✔ Balances multiple costs</p>
+        <p class="con">✘ Complex to manage</p>
+        <p class="con">✘ Not guaranteed optimal</p>
+      </div>
+      <div class="compare-card">
+        <h4>LP (Optimal)</h4>
+        <p class="pro">✔ Globally optimal cost</p>
+        <p class="pro">✔ Shadow prices available</p>
+        <p class="con">✘ Requires software</p>
+        <p class="con">✘ Continuous relaxation (may need rounding for integer workforce)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ 10. REFERENCES ══════════════════════ -->
+  <div class="section" id="references">
+    <div class="section-header">
+      <span class="badge">10</span>
+      <h2>References</h2>
+    </div>
+    <ul style="line-height:2.1;">
+      <li>Heizer, J., Render, B., &amp; Munson, C. (2020). <em>Operations Management: Sustainability and Supply Chain Management</em> (13th ed.). Pearson.</li>
+      <li>Chase, R. B., Aquilano, N. J., &amp; Jacobs, F. R. (2006). <em>Operations Management for Competitive Advantage</em> (11th ed.). McGraw-Hill.</li>
+      <li>Slack, N., Brandon-Jones, A., &amp; Johnston, R. (2016). <em>Operations Management</em> (8th ed.). Pearson.</li>
+      <li>Nahmias, S., &amp; Olsen, T. L. (2015). <em>Production and Operations Analysis</em> (7th ed.). Waveland Press.</li>
+      <li>Hillier, F. S., &amp; Lieberman, G. J. (2015). <em>Introduction to Operations Research</em> (10th ed.). McGraw-Hill.</li>
+      <li>Dantzig, G. B. (1963). <em>Linear Programming and Extensions</em>. Princeton University Press.</li>
+      <li>Costa, H. G. (2008). Planejamento agregado da produção. In L. Lustosa, O. Quelhas, M. Mesquita, &amp; V. Oliveira (Orgs.), <em>Planejamento e controle da produção</em> (Cap. 3, pp. 45–72). Rio de Janeiro: Elsevier.</li>
+    </ul>
+  </div>
+
+</div><!-- /page -->
+
+<footer>
+  Aggregate Planning Theory Guide &nbsp;·&nbsp;
+  👨‍🏫 Prof. Helder Costa &nbsp;·&nbsp;
+  <a href="mailto:heldergc@id.uff.br">heldergc@id.uff.br</a> &nbsp;·&nbsp;
+  Universidade Federal Fluminense &nbsp;·&nbsp;
+  Production Planning &amp; Control
+</footer>
+
+</body>
+</html>
