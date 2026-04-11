@@ -76,7 +76,7 @@ with st.sidebar:
                 data=_f.read(),
                 file_name="aggregate_planning_theory.html",
                 mime="text/html",
-                use_container_width=True,
+                width='stretch',
             )
         st.caption("Open the downloaded file in any browser — works offline.")
         st.divider()
@@ -159,7 +159,7 @@ with st.sidebar:
         st.success(f"✅ Uploaded: {len(active_periods)} periods detected.")
         st.dataframe(
             pd.DataFrame({"Period": uploaded_periods, "Demand": uploaded_demand}),
-            use_container_width=True, hide_index=True, height=200,
+            width='stretch', hide_index=True, height=200,
         )
         # Still allow fine-tuning via number inputs
         st.caption("Fine-tune values below if needed:")
@@ -313,7 +313,7 @@ if strategy == "Trial-and-Error":
     })
     edited = st.data_editor(
         default_te,
-        use_container_width=True,
+        width='stretch',
         num_rows="fixed",
         column_config={
             "Period":   st.column_config.TextColumn("Period", disabled=True),
@@ -412,7 +412,7 @@ with tabs[0]:
         height=420, margin=dict(t=40, b=60),
         plot_bgcolor="white", paper_bgcolor="white",
     )
-    st.plotly_chart(fig_dem, use_container_width=True)
+    st.plotly_chart(fig_dem, width='stretch')
 
     col_a, col_b, col_c = st.columns(3)
     col_a.metric("Total Demand", f"{sum(demand_vals):,.0f}")
@@ -454,14 +454,14 @@ with tabs[1]:
 
     styled = (
         df.style
-          .applymap(color_inventory, subset=["Inventory"])
-          .applymap(color_cost, subset=["Period Cost($)"])
+          .map(color_inventory, subset=["Inventory"])
+          .map(color_cost, subset=["Period Cost($)"])
           .format({"Period Cost($)": "${:,.0f}",
                    "Demand": "{:,.0f}", "Production": "{:,.0f}",
                    "Overtime": "{:,.0f}", "Subcontract": "{:,.0f}"})
     )
 
-    st.dataframe(styled, use_container_width=True, height=460)
+    st.dataframe(styled, width='stretch', height=460)
     st.caption("🔴 Red inventory = backorder  |  🟡 Yellow = zero inventory  |  🔴 Red cost = above 75th percentile")
 
     # Grand total row
@@ -496,7 +496,7 @@ with tabs[2]:
         height=460, margin=dict(t=40, b=80),
         plot_bgcolor="white", paper_bgcolor="white",
     )
-    st.plotly_chart(fig_prod, use_container_width=True)
+    st.plotly_chart(fig_prod, width='stretch')
 
 # ─────────────────────────────────────────────
 # Tab 3 — Workforce
@@ -525,7 +525,7 @@ with tabs[3]:
         height=420, margin=dict(t=40, b=80),
         plot_bgcolor="white", paper_bgcolor="white",
     )
-    st.plotly_chart(fig_wf, use_container_width=True)
+    st.plotly_chart(fig_wf, width='stretch')
 
     wf_stats = pd.DataFrame({
         "Period":    periods,
@@ -535,7 +535,7 @@ with tabs[3]:
         "Hire Cost ($)": [round(v, 0) for v in result["cost_hire"]],
         "Fire Cost ($)": [round(v, 0) for v in result["cost_fire"]],
     })
-    st.dataframe(wf_stats, use_container_width=True, hide_index=True)
+    st.dataframe(wf_stats, width='stretch', hide_index=True)
 
 # ─────────────────────────────────────────────
 # Tab 4 — Cost Breakdown
@@ -566,7 +566,7 @@ with tabs[4]:
         height=440, margin=dict(t=40, b=80),
         plot_bgcolor="white", paper_bgcolor="white",
     )
-    st.plotly_chart(fig_cost, use_container_width=True)
+    st.plotly_chart(fig_cost, width='stretch')
 
     # Summary donut
     totals = {cat: sum(vals) for cat, vals in cost_cats.items() if sum(vals) > 0}
@@ -577,14 +577,14 @@ with tabs[4]:
     )
     fig_pie.update_layout(height=380, margin=dict(t=60, b=20))
     col_pie, col_table = st.columns([1, 1])
-    col_pie.plotly_chart(fig_pie, use_container_width=True)
+    col_pie.plotly_chart(fig_pie, width='stretch')
 
     cost_summary = pd.DataFrame({
         "Category": list(totals.keys()),
         "Total ($)": [f"${v:,.0f}" for v in totals.values()],
         "Share (%)": [f"{v/result['grand_total']*100:.1f}%" for v in totals.values()],
     })
-    col_table.dataframe(cost_summary, use_container_width=True, hide_index=True)
+    col_table.dataframe(cost_summary, width='stretch', hide_index=True)
 
 # ─────────────────────────────────────────────
 # Tab 5 — Compare All Strategies
@@ -619,7 +619,7 @@ with tabs[5]:
                                  "Total Hired": "{:.1f}", "Total Fired": "{:.1f}",
                                  "Avg Inventory": "{:.1f}",
                                  "Total OT Units": "{:.1f}", "Total Sub Units": "{:.1f}"}),
-            use_container_width=True, hide_index=True,
+            width='stretch', hide_index=True,
         )
 
         # Cost bar chart
@@ -631,7 +631,7 @@ with tabs[5]:
         )
         fig_cmp.update_layout(showlegend=False, height=380,
                                plot_bgcolor="white", paper_bgcolor="white")
-        st.plotly_chart(fig_cmp, use_container_width=True)
+        st.plotly_chart(fig_cmp, width='stretch')
 
         # Radar / spider chart
         cats = ["Total Cost (norm)", "Workforce Stability", "Avg Inventory (norm)",
@@ -662,7 +662,7 @@ with tabs[5]:
             showlegend=True, height=450,
             title="Normalised Strategy Profile (lower = better)",
         )
-        st.plotly_chart(fig_radar, use_container_width=True)
+        st.plotly_chart(fig_radar, width='stretch')
     else:
         st.info("Click the button above to compare all strategies with the current parameters.")
 
@@ -700,7 +700,7 @@ if strategy == "Transportation Method":
             st.dataframe(
                 tdf.style.applymap(style_alloc, subset=periods)
                          .format("{:.0f}"),
-                use_container_width=True,
+                width='stretch',
                 height=min(60 + len(sources) * 38, 600),
             )
             st.caption("Blue shading = higher allocation.  Last column = source capacity.")
@@ -733,7 +733,7 @@ this is the <em>true marginal cost of one unit of demand in that period</em>.
                 "Inventory Balance SP ($)": [round(v, 2) for v in sp.get("Inventory Balance", [0]*T)],
                 "Workforce Balance SP ($)": [round(v, 2) for v in sp.get("Workforce Balance", [0]*T)],
             })
-            st.dataframe(sp_df, use_container_width=True, hide_index=True)
+            st.dataframe(sp_df, width='stretch', hide_index=True)
 
             fig_sp = go.Figure()
             fig_sp.add_bar(x=periods, y=sp["Inventory Balance"], name="Inventory Balance",
@@ -748,7 +748,7 @@ this is the <em>true marginal cost of one unit of demand in that period</em>.
                 plot_bgcolor="white", paper_bgcolor="white",
                 title="Shadow Prices by Period",
             )
-            st.plotly_chart(fig_sp, use_container_width=True)
+            st.plotly_chart(fig_sp, width='stretch')
         else:
             st.info("Shadow price data not available from this solver run. "
                     "Ensure the LP solved to optimality.")
