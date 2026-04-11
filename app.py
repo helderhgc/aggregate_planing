@@ -230,6 +230,45 @@ with st.sidebar:
     }
     st.divider()
 
+    # Variable Types
+    st.markdown("### 🔢 Variable Types")
+    st.caption("Force decision variables to be whole numbers (integers).")
+    integer_wf   = st.checkbox(
+        "Integer workforce — hired/fired/workers must be whole numbers",
+        value=False,
+        help="Applies to workforce level, hiring, and firing variables.",
+    )
+    integer_prod = st.checkbox(
+        "Integer production — units produced / OT / subcontract must be whole numbers",
+        value=False,
+        help="Applies to regular-time production, overtime, and subcontracted units.",
+    )
+    st.divider()
+
+    # Shortage Policy
+    st.markdown("### 📋 Shortage Policy")
+    shortage_policy = st.radio(
+        "How to handle unmet demand:",
+        options=["backorders", "no_shortages", "lost_sales"],
+        format_func=lambda x: {
+            "backorders":   "Backorders — demand fulfilled late (penalty cost)",
+            "no_shortages": "No Shortages — demand must always be met",
+            "lost_sales":   "Lost Sales — unmet demand is lost forever",
+        }[x],
+        index=0,
+        help="Backorders allow negative inventory. No-shortages forces feasibility. Lost sales drop demand permanently.",
+    )
+    if shortage_policy == "lost_sales":
+        costs["lost_sales"] = st.number_input(
+            "Lost Sales Penalty ($/unit)",
+            min_value=0, max_value=99999,
+            value=int(DEFAULTS["costs"].get("lost_sales", 50)),
+            step=10, key="c_lost_sales",
+        )
+    else:
+        costs["lost_sales"] = 0.0
+    st.divider()
+
 
 # ─────────────────────────────────────────────
 # Shared kwargs
@@ -251,7 +290,9 @@ solver_kwargs = dict(
 def run_solver(strategy_name, periods_tuple, demand_tuple, costs_tuple, capacity_tuple,
                init_wf, init_inv, prod,
                trial_production=None, trial_workforce=None,
-               trial_ot=None, trial_sub=None):
+               trial_ot=None, trial_sub=None,
+               integer_workforce=False, integer_production=False,
+               shortage_policy="backorders"):
     kw = dict(
         periods=list(periods_tuple),
         demand=list(demand_tuple),
@@ -260,6 +301,9 @@ def run_solver(strategy_name, periods_tuple, demand_tuple, costs_tuple, capacity
         initial_workforce=init_wf,
         initial_inventory=init_inv,
         productivity=prod,
+        integer_workforce=integer_workforce,
+        integer_production=integer_production,
+        shortage_policy=shortage_policy,
     )
     if strategy_name == "Chase Demand":
         return solve_chase(**kw)
@@ -347,6 +391,9 @@ with st.spinner("Computing plan…"):
         trial_workforce=tuple(trial_wf)   if trial_wf   else None,
         trial_ot=tuple(trial_ot)           if trial_ot   else None,
         trial_sub=tuple(trial_sub)         if trial_sub  else None,
+        integer_workforce=bool(integer_wf),
+        integer_production=bool(integer_prod),
+        shortage_policy=shortage_policy,
     )
 
 if not result["feasible"]:
@@ -371,6 +418,10 @@ k2.metric("👷 Total Hired",     f"{sum(result['hired']):.1f}")
 k3.metric("📉 Total Fired",     f"{sum(result['fired']):.1f}")
 k4.metric("📦 Avg Inventory",   f"{sum(result['inventory'])/T:.1f}")
 k5.metric("🔧 Total OT Units",  f"{sum(result['overtime']):.1f}")
+
+total_ls = sum(result["lost_sales"])
+if total_ls > 0:
+    st.metric("🚫 Total Lost Sales", f"{total_ls:,.0f} units")
 
 st.divider()
 
@@ -435,6 +486,7 @@ with tabs[1]:
         "Inventory":     [round(v, 1) for v in result["inventory"]],
         "Overtime":      [round(v, 0) for v in result["overtime"]],
         "Subcontract":   [round(v, 0) for v in result["subcontract"]],
+        "Lost Sales":    [round(v, 0) for v in result["lost_sales"]],
         "Period Cost($)":[round(v, 0) for v in result["cost_total"]],
     })
 
@@ -452,17 +504,24 @@ with tabs[1]:
                 return "background-color: #f8d7da;"
         return ""
 
+    def color_lost_sales(val):
+        if val > 0:
+            return "background-color: #d1ecf1; color: #0c5460;"
+        return ""
+
     styled = (
         df.style
           .map(color_inventory, subset=["Inventory"])
           .map(color_cost, subset=["Period Cost($)"])
+          .map(color_lost_sales, subset=["Lost Sales"])
           .format({"Period Cost($)": "${:,.0f}",
                    "Demand": "{:,.0f}", "Production": "{:,.0f}",
-                   "Overtime": "{:,.0f}", "Subcontract": "{:,.0f}"})
+                   "Overtime": "{:,.0f}", "Subcontract": "{:,.0f}",
+                   "Lost Sales": "{:,.0f}"})
     )
 
     st.dataframe(styled, width='stretch', height=460)
-    st.caption("🔴 Red inventory = backorder  |  🟡 Yellow = zero inventory  |  🔴 Red cost = above 75th percentile")
+    st.caption("🔴 Red inventory = backorder  |  🟡 Yellow = zero inventory  |  🔴 Red cost = above 75th percentile  |  💙 Blue = lost sales")
 
     # Grand total row
     st.markdown(f"**Grand Total Cost: ${result['grand_total']:,.0f}**")
@@ -602,6 +661,9 @@ with tabs[5]:
                 initial_workforce=float(init_wf),
                 initial_inventory=float(init_inv),
                 productivity=float(productivity),
+                integer_workforce=bool(integer_wf),
+                integer_production=bool(integer_prod),
+                shortage_policy=shortage_policy,
             )
         st.session_state["comparison"] = df_cmp
 

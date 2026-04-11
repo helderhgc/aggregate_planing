@@ -259,6 +259,8 @@
       <li><a href="#transport">Transportation Method</a></li>
       <li><a href="#te">Trial-and-Error / Spreadsheet Method</a></li>
       <li><a href="#comparison">Strategy Comparison</a></li>
+      <li><a href="#shortage">Shortage Policies</a></li>
+      <li><a href="#milp">Integer Variables &amp; MILP Extension</a></li>
       <li><a href="#references">References</a></li>
     </ol>
   </nav>
@@ -338,6 +340,7 @@
         <tr><td>$c_B$</td><td>Backorder penalty cost ($ per unit per period late)</td></tr>
         <tr><td>$c_{OT}$</td><td>Overtime cost ($ per unit produced on overtime)</td></tr>
         <tr><td>$c_{SC}$</td><td>Subcontracting cost ($ per unit subcontracted)</td></tr>
+        <tr><td>$c_{LS}$</td><td>Lost-sales penalty ($ per unit of demand permanently unmet)</td></tr>
         <tr><td>$W_0, I_0$</td><td>Initial workforce and inventory at $t=0$</td></tr>
         <tr><td>$\bar{W}$</td><td>Maximum allowable workforce</td></tr>
         <tr><td>$\alpha$</td><td>Maximum overtime fraction (e.g., 0.25 = 25% of regular capacity)</td></tr>
@@ -350,8 +353,13 @@
       $$\text{Total Cost} = \sum_{t=1}^{T} \Bigl[
         c_R P_t + c_H H_t + c_F F_t
         + c_I \max(I_t,\,0) + c_B \max(-I_t,\,0)
-        + c_{OT} O_t + c_{SC} S_t
+        + c_{OT} O_t + c_{SC} S_t + c_{LS} L_t
       \Bigr]$$
+    </div>
+    <div class="note">
+      The $c_{LS} L_t$ term is only active under the <strong>lost-sales shortage policy</strong>;
+      under backorders $L_t = 0$, and under no-shortages both $L_t = 0$ and $I_t^- = 0$ (the solver
+      enforces feasibility by preventing negative inventory).
     </div>
 
     <div class="note">
@@ -544,6 +552,7 @@
         <tr><td>$I_t^-$</td><td>Negative inventory (backorder)</td><td>$\geq 0$</td></tr>
         <tr><td>$O_t$</td><td>Overtime units</td><td>$\geq 0$</td></tr>
         <tr><td>$S_t$</td><td>Subcontracted units</td><td>$\geq 0$</td></tr>
+        <tr><td>$L_t$</td><td>Lost sales in period $t$ (unmet demand dropped forever)</td><td>$\geq 0$, policy-dependent</td></tr>
       </tbody>
     </table>
 
@@ -710,8 +719,13 @@
     <div class="note">
       In the dashboard, the LP is solved by <strong>SciPy's HiGHS solver</strong>
       (<code>scipy.optimize.linprog</code> with <code>method='highs'</code>), a state-of-the-art
-      open-source LP/MIP solver. The model has $8T$ variables and $2T$ equality + $4T$ inequality
-      constraints — typically solved in milliseconds for $T \leq 24$.
+      open-source LP/MIP solver. The base model has <strong>$9T$ variables</strong> ($x, h, f, w,
+      I^+, I^-, O, S, L$ per period) and $2T$ equality + $4T$ inequality constraints —
+      typically solved in milliseconds for $T \leq 24$.<br><br>
+      When the <strong>Integer Variables</strong> option is active, the solver switches to
+      <code>scipy.optimize.milp</code> (HiGHS MIP backend) with an
+      <code>integrality</code> vector that marks the chosen variable slices as integers.
+      Shadow prices are <em>not</em> available in MIP mode.
     </div>
   </div>
 
@@ -1299,10 +1313,235 @@
     </div>
   </div>
 
-  <!-- ══════════════════════ 10. REFERENCES ══════════════════════ -->
-  <div class="section" id="references">
+  <!-- ══════════════════════ 10. SHORTAGE POLICIES ══════════════════════ -->
+  <div class="section" id="shortage">
     <div class="section-header">
       <span class="badge">10</span>
+      <h2>Shortage Policies</h2>
+    </div>
+
+    <p>
+      A <strong>shortage policy</strong> specifies what happens when available supply (production
+      plus beginning inventory) is insufficient to meet demand in a given period.
+      The dashboard supports three mutually exclusive policies.
+    </p>
+
+    <h3>10.1 Backorders (default)</h3>
+    <p>
+      Unmet demand is <em>deferred</em> to a future period. Customers wait; the firm
+      fulfils the order later at a backorder penalty cost $c_B$ per unit per period late.
+      Inventory becomes <em>negative</em> during the backlog period.
+    </p>
+    <div class="math-block">
+      $$I_t = I_{t-1} + P_t - D_t \quad (\text{can be} < 0)$$
+    </div>
+    <table>
+      <thead><tr><th>Feature</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Demand satisfied?</td><td>Yes — eventually (late)</td></tr>
+        <tr><td>$I_t^-$ (backorder stock)</td><td>$\geq 0$, free</td></tr>
+        <tr><td>$L_t$ (lost sales)</td><td>$= 0$ (fixed)</td></tr>
+        <tr><td>Service level</td><td>100% (fill rate over time)</td></tr>
+        <tr><td>Revenue impact</td><td>Penalty cost only; revenue eventually earned</td></tr>
+      </tbody>
+    </table>
+    <div class="note">
+      <strong>Best for:</strong> Make-to-order environments; loyal customers willing to wait;
+      when the cost of losing a sale exceeds holding extra inventory.
+    </div>
+
+    <h3>10.2 No Shortages</h3>
+    <p>
+      Negative inventory is <strong>forbidden</strong>. The solver forces $I_t \geq 0$ at all
+      times by setting $I_t^- = 0$ and $L_t = 0$ in the bounds.
+      If demand cannot be met from production + inventory, the model is <em>infeasible</em>
+      and a warning is displayed.
+    </p>
+    <div class="math-block">
+      $$I_t \geq 0 \quad \forall\, t$$
+    </div>
+    <div class="note tip">
+      <strong>Pedagogical use:</strong> This is the most restrictive policy. It forces the
+      solver to build safety stock in advance of demand peaks, clearly illustrating the
+      cost of service-level guarantees.
+    </div>
+
+    <h3>10.3 Lost Sales</h3>
+    <p>
+      Unmet demand is <strong>dropped permanently</strong> — there is no backlog.
+      The firm incurs a lost-sales penalty $c_{LS}$ per unit not delivered, but does not
+      carry negative inventory.
+      A new decision variable $L_t \geq 0$ enters the model.
+    </p>
+
+    <h4>Modified Inventory Balance</h4>
+    <div class="math-block">
+      $$I_{t}^+ - I_{t}^- + L_t + P_t + O_t + S_t
+        = D_t + I_{t-1}^+ - I_{t-1}^-$$
+    </div>
+    <p style="margin-top:8px;">With $I_t^- = 0$ enforced (no backlog), this reduces to:</p>
+    <div class="math-block">
+      $$I_t^+ + L_t = D_t - I_{t-1}^+ + \text{(supply gaps)}$$
+    </div>
+
+    <h4>Modified Objective</h4>
+    <div class="math-block">
+      $$\min\; Z = \sum_{t=1}^{T} \Bigl[
+        \tfrac{c_R}{\rho} P_t + c_H H_t + c_F F_t
+        + c_I I_t^+ + c_{OT} O_t + c_{SC} S_t + c_{LS} L_t
+      \Bigr]$$
+    </div>
+
+    <table>
+      <thead><tr><th>Feature</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Demand satisfied?</td><td>Partially — lost units forfeited</td></tr>
+        <tr><td>$I_t^-$ (backorder)</td><td>$= 0$ (forbidden)</td></tr>
+        <tr><td>$L_t$ (lost sales)</td><td>$\geq 0$, free to optimise</td></tr>
+        <tr><td>Service level</td><td>$&lt; 100\%$ when capacity constrained</td></tr>
+        <tr><td>Revenue impact</td><td>Lost revenue + penalty $c_{LS}$</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note">
+      <strong>Best for:</strong> Perishable goods (food, tickets); environments where customers
+      will switch to a competitor rather than wait; spot-market scenarios.
+      $c_{LS}$ should reflect lost contribution margin plus potential reputational cost.
+    </div>
+
+    <h3>10.4 Policy Comparison</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Policy</th><th>$I_t^-$</th><th>$L_t$</th>
+          <th>Always feasible?</th><th>When to use</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Backorders</strong></td><td>Free $\geq 0$</td><td>$= 0$</td>
+          <td>Yes</td><td>Loyal customers; make-to-order</td>
+        </tr>
+        <tr>
+          <td><strong>No Shortages</strong></td><td>$= 0$</td><td>$= 0$</td>
+          <td>Only if capacity sufficient</td><td>High-service environments; JIT</td>
+        </tr>
+        <tr>
+          <td><strong>Lost Sales</strong></td><td>$= 0$</td><td>Free $\geq 0$</td>
+          <td>Yes</td><td>Perishables; competitive markets</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note tip">
+      <strong>Cost ordering:</strong> For the same cost parameters and demand, the cost comparison
+      $Z_{\text{no-short}} \geq Z_{\text{backorders}}$ always holds (backorders allow more flexibility).
+      The lost-sales cost relative to backorder cost depends on $c_{LS}$ and the length of backlog:
+      if $c_{LS} < c_B \cdot T_{\text{avg-lag}}$, lost sales is cheaper; otherwise backorders are preferred.
+    </div>
+  </div>
+
+  <!-- ══════════════════════ 11. INTEGER / MILP ══════════════════════ -->
+  <div class="section" id="milp">
+    <div class="section-header">
+      <span class="badge">11</span>
+      <h2>Integer Variables &amp; MILP Extension</h2>
+    </div>
+
+    <p>
+      The standard LP aggregate planning model treats all decision variables as
+      <strong>continuous</strong> — workforce levels, hired/fired counts, and production units
+      can all be fractional. In practice, <em>workers are indivisible</em> and production
+      units may need to be whole numbers. This section describes the Mixed-Integer Linear
+      Programming (MILP) extension.
+    </p>
+
+    <h3>11.1 Why Integer Variables Matter</h3>
+    <ul>
+      <li><strong>Workforce:</strong> You cannot hire 2.7 workers. Rounding the LP solution
+          may slightly violate constraints or change the cost in unexpected ways.</li>
+      <li><strong>Production:</strong> For discrete products (e.g., machines, large assemblies),
+          fractional production quantities are physically meaningless.</li>
+      <li><strong>Pedagogical value:</strong> Comparing the LP relaxation to the MILP solution
+          demonstrates the <em>integrality gap</em> — the extra cost of requiring whole numbers.</li>
+    </ul>
+
+    <h3>11.2 MILP Formulation</h3>
+    <p>The MILP extends the LP by adding integrality constraints on selected variable groups:</p>
+
+    <table>
+      <thead><tr><th>Option</th><th>Variables forced to $\mathbb{Z}_{\geq 0}$</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Integer Workforce</strong></td>
+          <td>$H_t,\; F_t,\; W_t$ for all $t$</td>
+        </tr>
+        <tr>
+          <td><strong>Integer Production</strong></td>
+          <td>$P_t^{RT},\; O_t,\; S_t$ for all $t$</td>
+        </tr>
+        <tr>
+          <td><strong>Both</strong></td>
+          <td>All of the above</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>Formally, appending to the LP:</p>
+    <div class="math-block">
+      $$H_t, F_t, W_t \in \mathbb{Z}_{\geq 0} \quad \text{(if integer workforce)} \tag{C8}$$
+      $$P_t^{RT}, O_t, S_t \in \mathbb{Z}_{\geq 0} \quad \text{(if integer production)} \tag{C9}$$
+    </div>
+    <p class="note">
+      Inventory split variables $I_t^+$, $I_t^-$, and lost-sales $L_t$ remain
+      <strong>continuous</strong> even in MILP mode — inventory levels are typically
+      measured in aggregate units and need not be integers.
+    </p>
+
+    <h3>11.3 Integrality Gap</h3>
+    <p>
+      The <strong>integrality gap</strong> is the difference between the optimal LP
+      (relaxed) cost and the MILP (integer) cost:
+    </p>
+    <div class="math-block">
+      $$\text{Gap} = Z^*_{\text{MILP}} - Z^*_{\text{LP}} \geq 0$$
+    </div>
+    <p>
+      The gap depends on the problem structure. For workforce variables,
+      the gap is often small (rounding 2.7 to 3 workers slightly increases cost).
+      For production variables with large unit costs, the gap can be significant.
+    </p>
+
+    <h3>11.4 Heuristic Approximation (non-LP strategies)</h3>
+    <p>
+      For <strong>Chase, Level, and Mixed</strong> strategies, integrality is enforced by
+      <em>rounding</em> each period's computed values to the nearest integer after the
+      greedy/heuristic calculation. This is an approximation — the rounded solution may
+      not minimise cost among all integer-feasible plans, but it is consistent with the
+      spirit of the heuristic.
+    </p>
+    <div class="note">
+      <strong>Practical advice:</strong> Run the MILP first for a true lower bound, then
+      compare with rounded heuristics to assess how much is lost by the heuristic approach.
+      Large integrality gaps suggest the LP relaxation is not a tight bound
+      and MILP is worth the extra computation.
+    </div>
+
+    <h3>11.5 Solver</h3>
+    <div class="note">
+      The dashboard uses <code>scipy.optimize.milp</code> (HiGHS branch-and-cut backend)
+      when any integer constraint is active. All constraints are expressed via
+      <code>LinearConstraint</code> and <code>Bounds</code> objects with an
+      <code>integrality</code> vector ($0 =$ continuous, $1 =$ integer).
+      Shadow prices are <strong>not available</strong> in MIP mode (dual variables
+      are only defined for LP relaxations).
+    </div>
+  </div>
+
+  <!-- ══════════════════════ 12. REFERENCES ══════════════════════ -->
+  <div class="section" id="references">
+    <div class="section-header">
+      <span class="badge">12</span>
       <h2>References</h2>
     </div>
     <ul style="line-height:2.1;">

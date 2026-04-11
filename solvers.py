@@ -32,7 +32,7 @@ Common result structure:
 from __future__ import annotations
 import numpy as np
 import pandas as pd
-from scipy.optimize import linprog
+from scipy.optimize import linprog, milp, LinearConstraint, Bounds
 
 
 # ---------------------------------------------------------------------------
@@ -45,9 +45,9 @@ def _empty_result(periods, demand):
     return dict(
         periods=periods, demand=demand,
         production=z[:], workforce=z[:], hired=z[:], fired=z[:],
-        inventory=z[:], overtime=z[:], subcontract=z[:],
+        inventory=z[:], overtime=z[:], subcontract=z[:], lost_sales=z[:],
         cost_rt=z[:], cost_hire=z[:], cost_fire=z[:],
-        cost_hold=z[:], cost_back=z[:], cost_ot=z[:], cost_sub=z[:],
+        cost_hold=z[:], cost_back=z[:], cost_ot=z[:], cost_sub=z[:], cost_ls=z[:],
         cost_total=z[:], grand_total=0.0,
         feasible=True, message="", shadow_prices=None, transport_tableau=None,
     )
@@ -63,6 +63,7 @@ def _compute_period_costs(res: dict, costs: dict) -> dict:
         bk  = max(-res["inventory"][t], 0) * costs["backorder"]
         ot  = res["overtime"][t]    * costs["overtime"]
         sub = res["subcontract"][t] * costs["subcontracting"]
+        ls  = res["lost_sales"][t]  * costs.get("lost_sales", 0.0)
         res["cost_rt"][t]   = rt
         res["cost_hire"][t] = hi
         res["cost_fire"][t] = fi
@@ -70,7 +71,8 @@ def _compute_period_costs(res: dict, costs: dict) -> dict:
         res["cost_back"][t] = bk
         res["cost_ot"][t]   = ot
         res["cost_sub"][t]  = sub
-        res["cost_total"][t] = rt + hi + fi + hld + bk + ot + sub
+        res["cost_ls"][t]   = ls
+        res["cost_total"][t] = rt + hi + fi + hld + bk + ot + sub + ls
     res["grand_total"] = sum(res["cost_total"])
     return res
 
@@ -80,7 +82,9 @@ def _compute_period_costs(res: dict, costs: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 def solve_chase(periods, demand, costs, capacity, initial_workforce,
-                initial_inventory, productivity):
+                initial_inventory, productivity,
+                integer_workforce=False, integer_production=False,
+                shortage_policy="backorders"):
     """
     Production = Demand each period.
     Workforce adjusted to exactly meet production; no overtime/subcontract.
@@ -100,12 +104,13 @@ def solve_chase(periods, demand, costs, capacity, initial_workforce,
 
         inv = inv + prod - demand[t]  # always 0 when prod == demand
 
-        res["production"][t] = prod
-        res["workforce"][t]  = new_wf
-        res["hired"][t]      = hired
-        res["fired"][t]      = fired
+        res["production"][t] = float(round(prod))   if integer_production else prod
+        res["workforce"][t]  = float(round(new_wf)) if integer_workforce  else new_wf
+        res["hired"][t]      = float(round(hired))  if integer_workforce  else hired
+        res["fired"][t]      = float(round(fired))  if integer_workforce  else fired
         res["inventory"][t]  = inv
-        wf = new_wf
+        res["lost_sales"][t] = 0.0
+        wf = res["workforce"][t]
 
     return _compute_period_costs(res, costs)
 
@@ -115,7 +120,9 @@ def solve_chase(periods, demand, costs, capacity, initial_workforce,
 # ---------------------------------------------------------------------------
 
 def solve_level(periods, demand, costs, capacity, initial_workforce,
-                initial_inventory, productivity):
+                initial_inventory, productivity,
+                integer_workforce=False, integer_production=False,
+                shortage_policy="backorders"):
     """
     Constant production rate = average demand.
     Inventory / backorders absorb variability.
@@ -125,10 +132,23 @@ def solve_level(periods, demand, costs, capacity, initial_workforce,
 
     avg_prod = sum(demand) / T
     wf       = avg_prod / productivity
+    if integer_workforce:
+        wf = float(round(wf))
+    if integer_production:
+        avg_prod = float(round(avg_prod))
     inv      = float(initial_inventory)
 
     for t in range(T):
-        inv = inv + avg_prod - demand[t]
+        inv_raw = inv + avg_prod - demand[t]
+        if shortage_policy == "lost_sales" and inv_raw < 0:
+            res["lost_sales"][t] = -inv_raw
+            inv = 0.0
+        elif shortage_policy == "no_shortages" and inv_raw < 0:
+            res["lost_sales"][t] = 0.0
+            inv = inv_raw   # flag infeasibility but proceed
+        else:
+            res["lost_sales"][t] = 0.0
+            inv = inv_raw
 
         res["production"][t] = avg_prod
         res["workforce"][t]  = wf
@@ -140,6 +160,10 @@ def solve_level(periods, demand, costs, capacity, initial_workforce,
     res["hired"][0]  = max(0.0, wf - initial_workforce)
     res["fired"][0]  = max(0.0, initial_workforce - wf)
 
+    if shortage_policy == "no_shortages" and min(res["inventory"]) < 0:
+        res["feasible"] = False
+        res["message"]  = "No-shortages policy violated: demand exceeds production capacity in at least one period."
+
     return _compute_period_costs(res, costs)
 
 
@@ -150,7 +174,9 @@ def solve_level(periods, demand, costs, capacity, initial_workforce,
 def solve_mixed(periods, demand, costs, capacity, initial_workforce,
                 initial_inventory, productivity,
                 target_workforce=None, allow_overtime=True,
-                allow_subcontract=True):
+                allow_subcontract=True,
+                integer_workforce=False, integer_production=False,
+                shortage_policy="backorders"):
     """
     Partial workforce adjustment.  Gaps filled with overtime then subcontracting.
     target_workforce: fixed workforce level to use (defaults to average).
@@ -178,26 +204,37 @@ def solve_mixed(periods, demand, costs, capacity, initial_workforce,
         gap2    = max(0.0, gap - ot_used)
         sub_used = min(gap2, max_sub) if allow_subcontract else 0.0
         prod    = rt_cap + ot_used + sub_used
-        inv     = inv + prod - demand[t]
+        inv_raw = inv + prod - demand[t]
 
-        res["production"][t]  = prod
-        res["workforce"][t]   = new_wf
-        res["hired"][t]       = hired
-        res["fired"][t]       = fired
+        if shortage_policy == "lost_sales" and inv_raw < 0:
+            res["lost_sales"][t] = -inv_raw
+            inv = 0.0
+        elif shortage_policy == "no_shortages" and inv_raw < 0:
+            res["lost_sales"][t] = 0.0
+            inv = inv_raw   # unchanged; infeasibility flagged below
+        else:
+            res["lost_sales"][t] = 0.0
+            inv = inv_raw
+
+        res["production"][t]  = float(round(prod))    if integer_production else prod
+        res["workforce"][t]   = float(round(new_wf)) if integer_workforce  else new_wf
+        res["hired"][t]       = float(round(hired))  if integer_workforce  else hired
+        res["fired"][t]       = float(round(fired))  if integer_workforce  else fired
         res["inventory"][t]   = inv
-        res["overtime"][t]    = ot_used
-        res["subcontract"][t] = sub_used
-        wf = new_wf
+        res["overtime"][t]    = float(round(ot_used))  if integer_production else ot_used
+        res["subcontract"][t] = float(round(sub_used)) if integer_production else sub_used
+        wf = res["workforce"][t]
+
+    if shortage_policy == "no_shortages" and min(res["inventory"]) < 0:
+        res["feasible"] = False
+        res["message"]  = "No-shortages policy violated: demand exceeds production + overtime + subcontract capacity."
 
     return _compute_period_costs(res, costs)
 
-
-# ---------------------------------------------------------------------------
-# 4. Linear Programming (scipy.optimize.linprog)
-# ---------------------------------------------------------------------------
-
 def solve_lp(periods, demand, costs, capacity, initial_workforce,
-             initial_inventory, productivity):
+             initial_inventory, productivity,
+             integer_workforce=False, integer_production=False,
+             shortage_policy="backorders"):
     """
     Decision variables per period t (0-indexed, T periods):
       x[t]   = production (regular-time units)
@@ -220,22 +257,8 @@ def solve_lp(periods, demand, costs, capacity, initial_workforce,
     ii  = slice(4*T, 5*T)       # inventory (unbounded below)
     iot = slice(5*T, 6*T)       # overtime units
     isb = slice(6*T, 7*T)       # subcontract
-    N   = 7 * T
-
-    c_vec = np.zeros(N)
-    cr = costs["regular_time"] / productivity   # cost per unit of RT production (≈ labour)
-    c_vec[ix]  = cr
-    c_vec[ih]  = costs["hiring"]
-    c_vec[iff] = costs["firing"]
-    c_vec[iot] = costs["overtime"]
-    c_vec[isb] = costs["subcontracting"]
-    # holding/backorder applied on inventory sign — handled by splitting inv+ and inv-
-    # Approximation: holding on positive inventory portion, backorder on negative.
-    # We model inventory as unbounded; add holding and backorder via auxiliary vars.
-    # Simplified: penalise positive inventory at c_hold, negative at c_back.
-    # Achieved by objective + constraints below using split variables inv+ and inv-.
-    # Rebuild variable order to split inventory:
-    # [x, h, f, w, ip, im, ot, sub]  where inv = ip - im, ip>=0, im>=0
+    # Variable layout: [x, h, f, w, ip, im, ot, sub, ls]
+    # im = backorder (inventory-), ls = lost sales; policy controls which are active
     ix  = slice(0,    T)
     ih  = slice(T,    2*T)
     iff = slice(2*T,  3*T)
@@ -244,7 +267,8 @@ def solve_lp(periods, demand, costs, capacity, initial_workforce,
     im  = slice(5*T,  6*T)   # inventory- (backorder)
     iot = slice(6*T,  7*T)
     isb = slice(7*T,  8*T)
-    N   = 8 * T
+    ils = slice(8*T,  9*T)   # lost sales
+    N   = 9 * T
 
     c_obj = np.zeros(N)
     c_obj[ix]  = costs["regular_time"] / productivity
@@ -254,20 +278,20 @@ def solve_lp(periods, demand, costs, capacity, initial_workforce,
     c_obj[im]  = costs["backorder"]
     c_obj[iot] = costs["overtime"]
     c_obj[isb] = costs["subcontracting"]
+    c_obj[ils] = costs.get("lost_sales", 0.0)
 
     # ---- Equality constraints (A_eq @ v == b_eq) ----
-    # (a) Inventory balance: ip[t] - im[t] = ip[t-1] - im[t-1] + x[t] + ot[t] + sub[t] - demand[t]
-    # Rearranged: x[t] + ot[t] + sub[t] + ip[t-1] - im[t-1] - ip[t] + im[t] = demand[t] - (I0 if t==0 else 0)
-    # (b) Workforce balance: w[t] = w[t-1] + h[t] - f[t]
-    # Rearranged: w[t] - h[t] + f[t] - w[t-1] = 0  (or W0 for t=0)
+    # (a) Inventory balance with optional lost sales:
+    #   x[t] + ot[t] + sub[t] + ip[t-1] - im[t-1] - ip[t] + im[t] + ls[t] = demand[t]
+    # (b) Workforce balance: w[t] - h[t] + f[t] - w[t-1] = 0
 
     n_eq = 2 * T
     A_eq = np.zeros((n_eq, N))
     b_eq = np.zeros(n_eq)
 
     for t in range(T):
-        row_inv = t          # inventory balance row
-        row_wf  = T + t      # workforce balance row
+        row_inv = t
+        row_wf  = T + t
 
         # Inventory balance
         A_eq[row_inv, ix.start + t]  = 1   # x[t]
@@ -275,6 +299,7 @@ def solve_lp(periods, demand, costs, capacity, initial_workforce,
         A_eq[row_inv, isb.start + t] = 1   # sub[t]
         A_eq[row_inv, ip.start + t]  = -1  # -ip[t]
         A_eq[row_inv, im.start + t]  =  1  # +im[t]
+        A_eq[row_inv, ils.start + t] =  1  # +ls[t]
         if t == 0:
             b_eq[row_inv] = demand[t] - initial_inventory
         else:
@@ -283,20 +308,16 @@ def solve_lp(periods, demand, costs, capacity, initial_workforce,
             b_eq[row_inv] = demand[t]
 
         # Workforce balance
-        A_eq[row_wf, iw.start + t]  = 1   # w[t]
-        A_eq[row_wf, ih.start + t]  = -1  # -h[t]
-        A_eq[row_wf, iff.start + t] = 1   # +f[t]
+        A_eq[row_wf, iw.start + t]  = 1
+        A_eq[row_wf, ih.start + t]  = -1
+        A_eq[row_wf, iff.start + t] = 1
         if t == 0:
             b_eq[row_wf] = initial_workforce
         else:
-            A_eq[row_wf, iw.start + t - 1] = -1  # -w[t-1]
+            A_eq[row_wf, iw.start + t - 1] = -1
             b_eq[row_wf] = 0.0
 
     # ---- Inequality constraints (A_ub @ v <= b_ub) ----
-    # (c) RT production <= workforce * productivity:   x[t] - w[t]*productivity <= 0
-    # (d) Overtime <= max_ot_frac * w[t] * productivity:  ot[t] - max_ot_frac*prod*w[t] <= 0
-    # (e) Subcontract <= max per period
-    # (f) Workforce <= max_workforce
     n_ub = 4 * T
     A_ub = np.zeros((n_ub, N))
     b_ub = np.zeros(n_ub)
@@ -305,30 +326,56 @@ def solve_lp(periods, demand, costs, capacity, initial_workforce,
     max_sub_pp = capacity["max_subcontract_per_period"]
 
     for t in range(T):
-        # (c)
-        A_ub[t,          ix.start + t]  =  1
-        A_ub[t,          iw.start + t]  = -productivity
-        b_ub[t] = 0
-
-        # (d)
-        A_ub[T + t,      iot.start + t] =  1
-        A_ub[T + t,      iw.start + t]  = -max_ot * productivity
-        b_ub[T + t] = 0
-
-        # (e)
-        A_ub[2*T + t,    isb.start + t] = 1
+        A_ub[t,       ix.start + t]  =  1
+        A_ub[t,       iw.start + t]  = -productivity
+        A_ub[T + t,   iot.start + t] =  1
+        A_ub[T + t,   iw.start + t]  = -max_ot * productivity
+        A_ub[2*T + t, isb.start + t] = 1
         b_ub[2*T + t] = max_sub_pp
-
-        # (f)
-        A_ub[3*T + t,    iw.start + t]  = 1
+        A_ub[3*T + t, iw.start + t]  = 1
         b_ub[3*T + t] = max_wf
 
-    # ---- Bounds ----
-    bounds = [(0, None)] * N   # all variables >= 0
+    # ---- Bounds — policy controls im and ls ----
+    bounds = [(0, None)] * N
+    if shortage_policy == "backorders":
+        # im free >= 0, ls = 0
+        for t in range(T):
+            bounds[ils.start + t] = (0, 0)
+    elif shortage_policy == "no_shortages":
+        # im = 0, ls = 0
+        for t in range(T):
+            bounds[im.start + t]  = (0, 0)
+            bounds[ils.start + t] = (0, 0)
+    else:  # lost_sales
+        # im = 0, ls free >= 0
+        for t in range(T):
+            bounds[im.start + t] = (0, 0)
 
-    result = linprog(c_obj, A_ub=A_ub, b_ub=b_ub,
-                     A_eq=A_eq, b_eq=b_eq, bounds=bounds,
-                     method="highs")
+    if integer_workforce or integer_production:
+        integrality = np.zeros(N)
+        if integer_workforce:
+            integrality[ih]  = 1
+            integrality[iff] = 1
+            integrality[iw]  = 1
+        if integer_production:
+            integrality[ix]  = 1
+            integrality[iot] = 1
+            integrality[isb] = 1
+        A_all = np.vstack([A_eq, A_ub])
+        lb_bnd = np.array([b[0] if b[0] is not None else -np.inf for b in bounds])
+        ub_bnd = np.array([b[1] if b[1] is not None else  np.inf for b in bounds])
+        lb_all = np.concatenate([b_eq, np.full(len(b_ub), -np.inf)])
+        ub_all = np.concatenate([b_eq, b_ub])
+        constraints = LinearConstraint(A_all, lb_all, ub_all)
+        var_bounds = Bounds(lb=lb_bnd, ub=ub_bnd)
+        result = milp(c_obj, constraints=constraints,
+                      integrality=integrality, bounds=var_bounds)
+        use_milp = True
+    else:
+        result = linprog(c_obj, A_ub=A_ub, b_ub=b_ub,
+                         A_eq=A_eq, b_eq=b_eq, bounds=bounds,
+                         method="highs")
+        use_milp = False
 
     res = _empty_result(periods, demand)
     if result.status != 0:
@@ -347,21 +394,24 @@ def solve_lp(periods, demand, costs, capacity, initial_workforce,
         res["inventory"][t]   = inv_arr[t]
         res["overtime"][t]    = v[iot.start + t]
         res["subcontract"][t] = v[isb.start + t]
+        res["lost_sales"][t]  = v[ils.start + t]
 
     res = _compute_period_costs(res, costs)
 
-    # Shadow prices (duals of equality constraints)
-    if result.ineqlin is not None or hasattr(result, "eqlin"):
-        duals = getattr(result, "eqlin", None)
-        if duals is not None and hasattr(duals, "marginals"):
-            sp_inv = duals.marginals[:T]
-            sp_wf  = duals.marginals[T:]
-            res["shadow_prices"] = {
-                "Inventory Balance": [round(float(v), 4) for v in sp_inv],
-                "Workforce Balance": [round(float(v), 4) for v in sp_wf],
-            }
-
-    res["message"] = f"Optimal — grand total cost: ${res['grand_total']:,.0f}"
+    # Shadow prices — LP (continuous) only
+    if not use_milp:
+        if result.ineqlin is not None or hasattr(result, "eqlin"):
+            duals = getattr(result, "eqlin", None)
+            if duals is not None and hasattr(duals, "marginals"):
+                sp_inv = duals.marginals[:T]
+                sp_wf  = duals.marginals[T:]
+                res["shadow_prices"] = {
+                    "Inventory Balance": [round(float(v), 4) for v in sp_inv],
+                    "Workforce Balance": [round(float(v), 4) for v in sp_wf],
+                }
+        res["message"] = f"Optimal — grand total cost: ${res['grand_total']:,.0f}"
+    else:
+        res["message"] = f"Optimal (MILP) — grand total cost: ${res['grand_total']:,.0f}"
     return res
 
 
@@ -370,7 +420,9 @@ def solve_lp(periods, demand, costs, capacity, initial_workforce,
 # ---------------------------------------------------------------------------
 
 def solve_transportation(periods, demand, costs, capacity, initial_workforce,
-                         initial_inventory, productivity):
+                         initial_inventory, productivity,
+                         integer_workforce=False, integer_production=False,
+                         shortage_policy="backorders"):
     """
     Build and solve a transportation tableau:
       Sources: initial inventory + (regular-time, overtime, subcontract) for each period
@@ -436,8 +488,17 @@ def solve_transportation(periods, demand, costs, capacity, initial_workforce,
             A_ub[i, i*T + j] = 1
 
     bounds = [(0, None)] * n_vars
-    result = linprog(c_lp, A_ub=A_ub, b_ub=b_ub,
-                     A_eq=A_eq, b_eq=b_eq, bounds=bounds, method="highs")
+    if integer_production:
+        A_all = np.vstack([A_eq, A_ub])
+        lb_all = np.concatenate([b_eq, np.full(len(b_ub), -np.inf)])
+        ub_all = np.concatenate([b_eq, b_ub])
+        constraints = LinearConstraint(A_all, lb_all, ub_all)
+        var_bounds = Bounds(lb=np.zeros(n_vars), ub=np.full(n_vars, np.inf))
+        result = milp(c_lp, constraints=constraints,
+                      integrality=np.ones(n_vars), bounds=var_bounds)
+    else:
+        result = linprog(c_lp, A_ub=A_ub, b_ub=b_ub,
+                         A_eq=A_eq, b_eq=b_eq, bounds=bounds, method="highs")
 
     res = _empty_result(periods, demand)
     if result.status != 0:
@@ -467,7 +528,13 @@ def solve_transportation(periods, demand, costs, capacity, initial_workforce,
     wf = float(initial_workforce)
     for t in range(T):
         prod = rt_prod[t] + ot_prod[t] + sub_prod[t]
-        inv  = inv + prod - demand[t]
+        inv_raw = inv + prod - demand[t]
+        if shortage_policy == "lost_sales" and inv_raw < 0:
+            ls = -inv_raw
+            inv = 0.0
+        else:
+            ls = 0.0
+            inv = inv_raw
         new_wf = avg_wf_level
         res["production"][t]  = prod
         res["workforce"][t]   = new_wf
@@ -476,6 +543,7 @@ def solve_transportation(periods, demand, costs, capacity, initial_workforce,
         res["inventory"][t]   = inv
         res["overtime"][t]    = ot_prod[t]
         res["subcontract"][t] = sub_prod[t]
+        res["lost_sales"][t]  = ls
         wf = new_wf
 
     res = _compute_period_costs(res, costs)
@@ -499,7 +567,9 @@ def solve_transportation(periods, demand, costs, capacity, initial_workforce,
 def solve_trial(periods, demand, costs, capacity, initial_workforce,
                 initial_inventory, productivity,
                 user_production=None, user_workforce=None,
-                user_overtime=None, user_subcontract=None):
+                user_overtime=None, user_subcontract=None,
+                integer_workforce=False, integer_production=False,
+                shortage_policy="backorders"):
     """
     User manually specifies per-period values. Solver validates feasibility
     and computes costs without optimising.
@@ -523,7 +593,13 @@ def solve_trial(periods, demand, costs, capacity, initial_workforce,
         rt_prod = prod[t] - ot_in[t] - sb_in[t]
         if rt_prod < 0:
             warnings.append(f"Period {periods[t]}: OT+Sub exceeds total production.")
-        inv = inv + prod[t] - demand[t]
+        inv_raw = inv + prod[t] - demand[t]
+        if shortage_policy == "lost_sales" and inv_raw < 0:
+            ls = -inv_raw
+            inv = 0.0
+        else:
+            ls = 0.0
+            inv = inv_raw
 
         res["production"][t]  = prod[t]
         res["workforce"][t]   = new_wf
@@ -532,6 +608,7 @@ def solve_trial(periods, demand, costs, capacity, initial_workforce,
         res["inventory"][t]   = inv
         res["overtime"][t]    = ot_in[t]
         res["subcontract"][t] = sb_in[t]
+        res["lost_sales"][t]  = ls
         wf = new_wf
 
     res = _compute_period_costs(res, costs)
@@ -548,7 +625,9 @@ def solve_trial(periods, demand, costs, capacity, initial_workforce,
 # ---------------------------------------------------------------------------
 
 def compare_all(periods, demand, costs, capacity, initial_workforce,
-                initial_inventory, productivity):
+                initial_inventory, productivity,
+                integer_workforce=False, integer_production=False,
+                shortage_policy="backorders"):
     strategies = {
         "Chase":          solve_chase,
         "Level":          solve_level,
@@ -559,7 +638,10 @@ def compare_all(periods, demand, costs, capacity, initial_workforce,
     rows = []
     for name, fn in strategies.items():
         r = fn(periods, demand, costs, capacity,
-               initial_workforce, initial_inventory, productivity)
+               initial_workforce, initial_inventory, productivity,
+               integer_workforce=integer_workforce,
+               integer_production=integer_production,
+               shortage_policy=shortage_policy)
         rows.append({
             "Strategy":       name,
             "Total Cost ($)": round(r["grand_total"], 0),
@@ -568,6 +650,7 @@ def compare_all(periods, demand, costs, capacity, initial_workforce,
             "Avg Inventory":  round(sum(r["inventory"]) / len(periods), 1),
             "Total OT Units": round(sum(r["overtime"]), 1),
             "Total Sub Units":round(sum(r["subcontract"]), 1),
+            "Lost Sales":     round(sum(r["lost_sales"]), 1),
             "Feasible":       r["feasible"],
         })
     return pd.DataFrame(rows)
