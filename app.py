@@ -1,6 +1,7 @@
 """
 app.py — Aggregate Planning Interactive Dashboard
-Professor tool for teaching Production Planning & Control.
+Tool for teaching Production Planning & Control.
+Authors: Helder Costa (heldergc@id.uff.br), Leonardo Costa (leo_costa@id.uff.br)
 Run: streamlit run app.py
 """
 
@@ -64,7 +65,7 @@ DEFAULTS = load_defaults()
 with st.sidebar:
     st.title("📦 Aggregate Planning")
     st.caption("Production Planning & Control — Interactive Dashboard")
-    st.caption("👨‍🏫 Prof. Helder Costa · heldergc@id.uff.br")
+    st.caption("👨‍🏫 Helder Costa · heldergc@id.uff.br  |  Leonardo Costa · leo_costa@id.uff.br")
     st.divider()
 
     # Theory download button
@@ -847,4 +848,4 @@ st.caption(
     "Aggregate Planning Dashboard · Production Planning & Control · "
     "Built with Streamlit + Plotly + SciPy"
 )
-st.caption("👨‍🏫 **Prof. Helder Costa** · heldergc@id.uff.br")
+st.caption("👨‍🏫 **Helder Costa** · heldergc@id.uff.br  |  **Leonardo Costa** · leo_costa@id.uff.br")
