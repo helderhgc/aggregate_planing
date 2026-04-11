@@ -87,6 +87,18 @@ with st.sidebar:
     preset_names = ["Custom"] + list(DEFAULTS["presets"].keys())
     preset_choice = st.selectbox("📂 Load Preset Scenario", preset_names)
 
+    # When the preset changes, push new demand values into session_state so that
+    # the number_input widgets below render the correct values immediately.
+    if st.session_state.get("_last_preset") != preset_choice:
+        _new_demand = (
+            DEFAULTS["presets"][preset_choice]["demand"]
+            if preset_choice != "Custom"
+            else DEFAULTS["demand"]
+        )
+        for _i, _d in enumerate(_new_demand):
+            st.session_state[f"d_{_i}"] = int(_d)
+        st.session_state["_last_preset"] = preset_choice
+
     # Strategy selector — kept at top for easy access
     st.markdown("### 🎯 Strategy")
     strategy = st.selectbox("Select Strategy", [
