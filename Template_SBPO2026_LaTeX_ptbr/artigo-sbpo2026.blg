@@ -5,44 +5,44 @@ Reallocating 'name_of_file' (item size: 1) to 5 items.
 The style file: sbpo.bst
 Reallocating 'name_of_file' (item size: 1) to 16 items.
 Database file #1: artigo-sbpo2026.bib
-You've used 12 entries,
+You've used 20 entries,
             2646 wiz_defined-function locations,
-            646 strings with 6393 characters,
-and the built_in function-call counts, 5040 in all, are:
-= -- 477
-> -- 264
-< -- 6
-+ -- 99
-- -- 84
-* -- 385
-:= -- 870
-add.period$ -- 39
-call.type$ -- 12
-change.case$ -- 75
-chr.to.int$ -- 12
-cite$ -- 12
-duplicate$ -- 204
-empty$ -- 385
-format.name$ -- 100
-if$ -- 1018
+            694 strings with 7819 characters,
+and the built_in function-call counts, 8855 in all, are:
+= -- 846
+> -- 470
+< -- 12
++ -- 177
+- -- 150
+* -- 709
+:= -- 1510
+add.period$ -- 63
+call.type$ -- 20
+change.case$ -- 129
+chr.to.int$ -- 20
+cite$ -- 20
+duplicate$ -- 348
+empty$ -- 663
+format.name$ -- 184
+if$ -- 1785
 int.to.chr$ -- 1
 int.to.str$ -- 1
-missing$ -- 13
-newline$ -- 69
-num.names$ -- 48
-pop$ -- 129
+missing$ -- 23
+newline$ -- 109
+num.names$ -- 80
+pop$ -- 205
 preamble$ -- 1
-purify$ -- 63
+purify$ -- 109
 quote$ -- 0
-skip$ -- 147
+skip$ -- 252
 stack$ -- 0
-substring$ -- 188
-swap$ -- 12
+substring$ -- 402
+swap$ -- 20
 text.length$ -- 0
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 112
+type$ -- 190
 warning$ -- 0
-while$ -- 46
+while$ -- 82
 width$ -- 0
-write$ -- 168
+write$ -- 274

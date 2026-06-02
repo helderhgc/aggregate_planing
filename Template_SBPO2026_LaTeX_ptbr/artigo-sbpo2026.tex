@@ -12,7 +12,10 @@
 \usepackage{booktabs}
 \usepackage{tabularx}
 \usepackage{xcolor}
-\usepackage{hyperref}
+\usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue]{hyperref}
+
+
+
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[C]{\includegraphics[scale=0.5]{sbpo2026-header-logo.png}}
@@ -31,36 +34,32 @@ uma Ferramenta \textit{Open-Source} Baseada em Streamlit}
 \thispagestyle{fancy}
 
 \author{
-\name{Helder G. Costa}
-\institute{Departamento de Engenharia de Produção -- Universidade Federal Fluminense}
-\iaddress{Rua Passo da Pátria 156, Niterói -- RJ, CEP 24210-240}
-\email{heldergc@id.uff.br}
-}
-
-\author{
 \name{Leonardo Costa}
 \institute{Departamento de Engenharia de Produção -- Universidade Federal Fluminense}
 \iaddress{Rua Passo da Pátria 156, Niterói -- RJ, CEP 24210-240}
 \email{leo\_costa@id.uff.br}
 }
 
+
+\author{
+\name{Helder G. Costa}
+\institute{Departamento de Engenharia de Produção -- Universidade Federal Fluminense}
+\iaddress{Rua Passo da Pátria 156, Niterói -- RJ, CEP 24210-240}
+\email{heldergc@id.uff.br}
+}
+
+
 \vspace{8mm}
 \begin{resumo}
-Este artigo apresenta um \textit{dashboard} interativo \textit{open-source} para o ensino de
-Planejamento Agregado da Produção (PAP), desenvolvido em Python com as bibliotecas Streamlit,
-Plotly e SciPy. A ferramenta integra, em uma única interface reativa, seis métodos clássicos
-de PAP: Estratégia de Acompanhamento da Demanda, Produção Nivelada, Estratégia Mista,
-Programação Linear (PL), Método do Transporte e Tentativa-e-Erro. Adicionalmente,
-incorpora extensões modernas como variáveis inteiras via Programação Linear Inteira Mista
+Este artigo apresenta um \textit{dashboard} interativo \textit{open-source} para o apoio ao  ensino das técnicas e conceitos de  Planejamento Agregado da Produção (PAP). Desenvolvido Python com as bibliotecas Streamlit, Plotly e SciPy. A ferramenta integra, em uma única interface reativa, seis métodos clássicos de PAP: Estratégia de Acompanhamento da Demanda, Produção Nivelada, Estratégia Mista, Programação Linear (PL), Método do Transporte e Tentativa-e-Erro. Adicionalmente, incorpora extensões modernas como variáveis inteiras via Programação Linear Inteira Mista
 (PLIM) e três políticas de escassez (pedidos em atraso, sem escassez e venda perdida).
 Um estudo de caso com horizonte de 12 períodos demonstra o uso comparativo dos métodos,
-evidenciando que a PL obtém o menor custo total. A ferramenta está disponível publicamente
-no GitHub e no Streamlit Cloud, podendo ser utilizada sem instalação.
+evidenciando que a PL obtém o menor custo total. A ferramenta está disponível publicamente no Streamlit Cloud, podendo ser utilizada sem instalação.
 \end{resumo}
 
 \bigskip
 \begin{palchaves}
-Planejamento agregado da produção. Ferramenta educacional. Programação linear. Dashboard interativo. \textit{Open-source}.
+Planejamento agregado da produção. Ferramenta educacional. Programação linear. Dashboard interativo. 
 
 \bigskip
 \noindent{Tópicos (em ordem de prioridade):
@@ -108,8 +107,7 @@ minimizar o custo total enquanto atende à demanda prevista dentro das restriç�
 capacidade.
 
 Apesar de sua importância, o ensino do PAP enfrenta desafios práticos. As ferramentas
-disponíveis costumam ser planilhas estáticas que exigem reconfiguração manual, softwares
-comerciais com custo de licenciamento elevado ou implementações acadêmicas isoladas que
+disponíveis costumam ser planilhas estáticas que exigem reconfiguração manual, softwares comerciais com custo de licenciamento elevado ou implementações acadêmicas isoladas que
 cobrem apenas um método por vez. A ausência de uma plataforma que integre múltiplos
 métodos de forma comparativa e interativa dificulta que o aluno desenvolva a intuição
 sobre os \textit{trade-offs} entre as diferentes estratégias.
@@ -167,6 +165,52 @@ Acompanhamento da Demanda (\textit{Chase}) e Produção Nivelada (\textit{Level}
 pelo Método do Transporte de~\citet{bowman1956} e a regra de decisão linear de
 \citet{holt1955}, até formulações de programação matemática. Para uma revisão abrangente,
 veja \citet{arenales2015} e \citet{krajewski2013}.
+
+\subsection{Revisão da Literatura sobre Modelagem do PAP}
+
+O Quadro~\ref{tab:lit} sintetiza trabalhos representativos sobre a modelagem do PAP,
+agrupados cronologicamente desde os modelos fundacionais até abordagens contemporâneas de
+programação matemática avançada. A análise evidencia três tendências dominantes:
+(i)~a transição dos modelos analíticos e heurísticos clássicos para formulações de
+Programação Linear (PL) e Programação Linear Inteira Mista (PLIM); (ii)~a incorporação
+crescente de incerteza via lógica fuzzy e programação por metas; e (iii)~a carência de
+ferramentas educacionais que integrem múltiplos métodos de forma comparativa e interativa.
+Em particular, nenhum dos trabalhos revisados propõe simultaneamente a modelagem de
+políticas de escassez distintas e uma interface pedagógica dedicada, lacuna que o presente
+trabalho se propõe a preencher.
+
+\begin{table}[htbp]
+\centering
+\caption{Síntese de trabalhos representativos sobre modelagem do PAP.}
+\label{tab:lit}
+\begin{tabularx}{\textwidth}{@{}p{3.1cm}p{3.0cm}p{2.0cm}p{1.4cm}p{1.4cm}X@{}}
+\toprule
+\textbf{Referência} &
+\textbf{Abordagem} &
+\textbf{Variáveis} &
+\textbf{Pol.\ escassez} &
+\textbf{Foco} &
+\textbf{Ferramenta} \\
+\midrule
+\citet{holt1955}       & Regra de decisão linear quadrática (HMMS) & P, W, H, F, I & Não & Teórico & Analítico \\
+\citet{bowman1956}     & Método do Transporte (PL) & P, I & Não & Teórico & PL manual \\
+\citet{hanssmann1960}  & Programação Linear & P, W, O, S, I & Não & Teórico & PL \\
+\citet{silver1967}     & Suavização de produção e força de trabalho & P, W, H, F, I & Não & Teórico & Analítico \\
+\citet{nam1992}        & Survey de modelos e metodologias & Variadas & Variado & Survey & -- \\
+\citet{wang2004}       & PL fuzzy multi-objetivo & P, W, O, S, I & Não & Aplicado & Fuzzy LP \\
+\citet{leung2009}      & Programação por metas & P, W, O, S, I & Sim & Aplicado & Goal prog. \\
+\citet{jamalnia2009}   & Goal programming fuzzy híbrido & P, W, O, S, I & Não & Aplicado & Fuzzy GP \\
+\citet{baykasoglu2010} & Programação matemática fuzzy & P, W, O, S, I & Não & Aplicado & MOLP \\
+\citet{ramezanian2012} & PLIM + metaheurísticas & P, W, O, S, I & Não & Aplicado & MILP + GA \\
+\textbf{Este trabalho} & \textbf{PL/PLIM + heurísticas} & \textbf{P, W, H, F,} \textbf{O, S, I, B, L} & \textbf{3 políticas} & \textbf{Educacional} & \textbf{Dashboard web} \\
+\bottomrule
+\end{tabularx}
+\smallskip
+\footnotesize
+\textit{Legenda -- Variáveis}: P: produção; W: mão-de-obra; H/F: contratação/demissão;
+O: horas extras; S: subcontratação; I: estoque; B: \textit{backorder}; L: venda perdida.\\
+\textit{Pol.\ escassez}: política de tratamento de demanda não atendida.
+\end{table}
 
 
 % ─────────────────────────────────────────────────────────────────────────────
@@ -242,6 +286,61 @@ formulações matemáticas, exemplos numéricos resolvidos e a seção de análi
 sensibilidade via preços-sombra. Essa característica é especialmente relevante para o
 contexto pedagógico, pois permite que o estudante consulte a teoria enquanto manipula o
 modelo interativamente.
+
+\subsection{Posicionamento em Relação a Ferramentas Existentes}
+
+O Quadro~\ref{tab:ferramentas} compara o \textit{Aggregate Planning Dashboard} com as
+principais alternativas disponíveis para ensino e análise de PAP. Os critérios adotados
+abrangem aspectos de acessibilidade, cobertura metodológica e adequação pedagógica.
+
+\begin{table}[htbp]
+\centering
+\caption{Comparação entre ferramentas para ensino e análise do PAP.}
+\label{tab:ferramentas}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}p{3.0cm}p{1.5cm}p{1.7cm}p{1.7cm}p{1.1cm}p{1.7cm}p{1.5cm}p{1.9cm}p{1.5cm}@{}}
+\toprule
+\textbf{Ferramenta} &
+\textbf{Cód.\ aberto} &
+\textbf{Web / s/ instal.} &
+\textbf{Métodos PAP} &
+\textbf{PLIM} &
+\textbf{Pol.\ escassez} &
+\textbf{Vis.\ interativa} &
+\textbf{Comparação integrada} &
+\textbf{Guia teórico} \\
+\midrule
+POM-QM~\citep{weiss2016}
+  & Não & Não & 3 básicos & Não & Não & Limitada & Não & Não \\
+Excel + Solver
+  & Não & Não & Manual & Parcial & Manual & Estática & Não & Não \\
+LINGO/LINDO
+  & Não & Não & Geral & Sim & Manual & Não & Não & Não \\
+Pyomo~\citep{bynum2021}
+  & Sim & Não & Geral & Sim & Manual & Não & Não & Não \\
+\textbf{Este trabalho}
+  & \textbf{Sim} & \textbf{Sim} & \textbf{6 métodos} & \textbf{Sim} & \textbf{3 políticas} & \textbf{Sim} & \textbf{Sim} & \textbf{Sim} \\
+\bottomrule
+\end{tabular}%
+}
+\par\smallskip
+{\footnotesize
+\textit{Legenda -- Cód.\ aberto}: disponibilidade do código-fonte;
+\textit{Web/s/ instal.}: acesso via navegador sem instalação local;
+\textit{Métodos PAP}: estratégias de PAP implementadas nativamente;
+\textit{PLIM}: suporte a variáveis inteiras;
+\textit{Pol.\ escassez}: políticas de demanda não atendida;
+\textit{Vis.\ interativa}: gráficos dinâmicos em tempo real;
+\textit{Comparação integrada}: painel comparativo automático entre métodos;
+\textit{Guia teórico}: material didático embutido na interface.}
+\end{table}
+
+A análise evidencia que nenhuma das ferramentas existentes reúne simultaneamente os
+atributos de código aberto, acesso \textit{web} sem instalação, cobertura de seis métodos,
+suporte a PLIM, múltiplas políticas de escassez e interface comparativa com guia teórico
+integrado. O \textit{Aggregate Planning Dashboard} é a única solução que combina todos
+esses atributos, ocupando um nicho específico voltado ao ensino de PAP de forma integrada
+e acessível.
 
 
 % ─────────────────────────────────────────────────────────────────────────────
@@ -445,7 +544,7 @@ demanda integrado (e.g., suavização exponencial, ARIMA); (iii) internacionaliz
 interface para múltiplos idiomas; e (iv) integração com dados reais via APIs de sistemas
 ERP/SCM.
 
-~\\
+\bigskip
 \bibliographystyle{sbpo}
 \bibliography{artigo-sbpo2026}
 
