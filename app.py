@@ -65,7 +65,7 @@ DEFAULTS = load_defaults()
 with st.sidebar:
     st.title("📦 Aggregate Planning")
     st.caption("Production Planning & Control — Interactive Dashboard")
-    st.caption("👨‍🏫 Helder Costa · heldergc@id.uff.br  |  Leonardo Costa · leo_costa@id.uff.br")
+    st.caption("👨‍🏫 Leonardo Costa · leo_costa@id.uff.br  |  👨‍🏫 Helder Costa · heldergc@id.uff.br")
     st.divider()
 
     # Theory download button
@@ -860,4 +860,4 @@ st.caption(
     "Aggregate Planning Dashboard · Production Planning & Control · "
     "Built with Streamlit + Plotly + SciPy"
 )
-st.caption("👨‍🏫 **Helder Costa** · heldergc@id.uff.br  |  **Leonardo Costa** · leo_costa@id.uff.br")
+st.caption("👨‍🏫 **Leonardo Costa** · leo_costa@id.uff.br  |  **Helder Costa** · heldergc@id.uff.br")
