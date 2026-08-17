@@ -28,3 +28,6 @@ desktop.ini
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Markdown (não versionar / não enviar ao GitHub)
+*.md

@@ -1547,6 +1547,7 @@
       <span class="badge">12</span>
       <h2>References</h2>
     </div>
+    <h3>12.1 Aggregate Planning &amp; Operations Research</h3>
     <ul style="line-height:2.1;">
       <li>Heizer, J., Render, B., &amp; Munson, C. (2020). <em>Operations Management: Sustainability and Supply Chain Management</em> (13th ed.). Pearson.</li>
       <li>Chase, R. B., Aquilano, N. J., &amp; Jacobs, F. R. (2006). <em>Operations Management for Competitive Advantage</em> (11th ed.). McGraw-Hill.</li>
@@ -1556,6 +1557,74 @@
       <li>Dantzig, G. B. (1963). <em>Linear Programming and Extensions</em>. Princeton University Press.</li>
       <li>Costa, H. G. (2008). Planejamento agregado da produção. In L. Lustosa, O. Quelhas, M. Mesquita, &amp; V. Oliveira (Orgs.), <em>Planejamento e controle da produção</em> (Cap. 3, pp. 45–72). Rio de Janeiro: Elsevier.</li>
     </ul>
+
+    <h3>12.2 Software &amp; Computational Tools</h3>
+    <p>
+      This dashboard is implemented entirely in the Python scientific stack. The references below
+      are the citations recommended by each project's own documentation, and should be used when
+      the tool is mentioned in academic work.
+    </p>
+
+    <h4 style="margin-top:1.2rem;">Programming Language</h4>
+    <ul style="line-height:2.1;">
+      <li>Van Rossum, G., &amp; Drake, F. L. (2009). <em>Python 3 Reference Manual</em>. Scotts Valley, CA: CreateSpace. ISBN 978-1-4414-1269-0.</li>
+      <li>Python Software Foundation. <em>The Python Language Reference</em> [Documentation]. Retrieved from <a href="https://docs.python.org/3/reference/">https://docs.python.org/3/reference/</a></li>
+    </ul>
+
+    <h4 style="margin-top:1.2rem;">Web Application Framework</h4>
+    <ul style="line-height:2.1;">
+      <li>Streamlit Inc. (2019). <em>Streamlit: A faster way to build and share data apps</em> [Computer software]. Retrieved from <a href="https://streamlit.io/">https://streamlit.io/</a> — source code: <a href="https://github.com/streamlit/streamlit">https://github.com/streamlit/streamlit</a></li>
+    </ul>
+    <p class="note">
+      Streamlit has <strong>no peer-reviewed publication</strong>. The entry above is a software
+      citation (the form recommended by the project itself); cite it as software, not as an article.
+    </p>
+
+    <h4 style="margin-top:1.2rem;">Numerical Computing</h4>
+    <ul style="line-height:2.1;">
+      <li>Harris, C. R., Millman, K. J., van der Walt, S. J., Gommers, R., Virtanen, P., Cournapeau, D., Wieser, E., Taylor, J., Berg, S., Smith, N. J., Kern, R., Picus, M., Hoyer, S., van Kerkwijk, M. H., Brett, M., Haldane, A., Fernández del Río, J., Wiebe, M., Peterson, P., … Oliphant, T. E. (2020). Array programming with NumPy. <em>Nature</em>, 585(7825), 357–362. <a href="https://doi.org/10.1038/s41586-020-2649-2">https://doi.org/10.1038/s41586-020-2649-2</a></li>
+      <li>van der Walt, S., Colbert, S. C., &amp; Varoquaux, G. (2011). The NumPy array: A structure for efficient numerical computation. <em>Computing in Science &amp; Engineering</em>, 13(2), 22–30. <a href="https://doi.org/10.1109/MCSE.2011.37">https://doi.org/10.1109/MCSE.2011.37</a></li>
+    </ul>
+
+    <h4 style="margin-top:1.2rem;">Data Structures &amp; Tabular Analysis</h4>
+    <ul style="line-height:2.1;">
+      <li>McKinney, W. (2010). Data structures for statistical computing in Python. In S. van der Walt &amp; J. Millman (Eds.), <em>Proceedings of the 9th Python in Science Conference</em> (pp. 56–61). <a href="https://doi.org/10.25080/Majora-92bf1922-00a">https://doi.org/10.25080/Majora-92bf1922-00a</a></li>
+      <li>The pandas development team. (2020). <em>pandas-dev/pandas: Pandas</em> [Computer software]. Zenodo. <a href="https://doi.org/10.5281/zenodo.3509134">https://doi.org/10.5281/zenodo.3509134</a></li>
+    </ul>
+
+    <h4 style="margin-top:1.2rem;">Interactive Visualisation</h4>
+    <ul style="line-height:2.1;">
+      <li>Plotly Technologies Inc. (2015). <em>Collaborative data science</em>. Montréal, QC: Plotly Technologies Inc. Retrieved from <a href="https://plot.ly">https://plot.ly</a></li>
+    </ul>
+
+    <h4 style="margin-top:1.2rem;">Optimisation &amp; Scientific Computing</h4>
+    <ul style="line-height:2.1;">
+      <li>Virtanen, P., Gommers, R., Oliphant, T. E., Haberland, M., Reddy, T., Cournapeau, D., Burovski, E., Peterson, P., Weckesser, W., Bright, J., van der Walt, S. J., Brett, M., Wilson, J., Millman, K. J., Mayorov, N., Nelson, A. R. J., Jones, E., Kern, R., Larson, E., … SciPy 1.0 Contributors. (2020). SciPy 1.0: Fundamental algorithms for scientific computing in Python. <em>Nature Methods</em>, 17(3), 261–272. <a href="https://doi.org/10.1038/s41592-019-0686-2">https://doi.org/10.1038/s41592-019-0686-2</a></li>
+      <li>Huangfu, Q., &amp; Hall, J. A. J. (2018). Parallelizing the dual revised simplex method. <em>Mathematical Programming Computation</em>, 10(1), 119–142. <a href="https://doi.org/10.1007/s12532-017-0130-5">https://doi.org/10.1007/s12532-017-0130-5</a></li>
+      <li>HiGHS — <em>High performance software for linear optimization</em> [Computer software]. Retrieved from <a href="https://highs.dev/">https://highs.dev/</a></li>
+    </ul>
+    <p class="note">
+      The LP and MILP models of Section 6 and Section 11 are solved through
+      <code>scipy.optimize.linprog</code> and <code>scipy.optimize.milp</code>, which since
+      SciPy 1.9 delegate to the <strong>HiGHS</strong> dual simplex / branch-and-cut solver.
+      Work citing the optimal solutions produced by this dashboard should cite both
+      SciPy (the interface) and Huangfu &amp; Hall (the underlying algorithm).
+    </p>
+
+    <h4 style="margin-top:1.2rem;">Standard Library Modules</h4>
+    <ul style="line-height:2.1;">
+      <li><code>pathlib</code> — Pitrou, A. (2012). <em>PEP 428: The pathlib module — object-oriented filesystem paths</em>. Python Enhancement Proposals, Python Software Foundation. <a href="https://peps.python.org/pep-0428/">https://peps.python.org/pep-0428/</a></li>
+      <li><code>pathlib</code> — Python Software Foundation. <em>pathlib — Object-oriented filesystem paths</em> [Documentation]. Retrieved from <a href="https://docs.python.org/3/library/pathlib.html">https://docs.python.org/3/library/pathlib.html</a></li>
+      <li><code>json</code> — Bray, T. (Ed.). (2017). <em>The JavaScript Object Notation (JSON) Data Interchange Format</em> (RFC 8259, STD 90). Internet Engineering Task Force. <a href="https://doi.org/10.17487/RFC8259">https://doi.org/10.17487/RFC8259</a></li>
+      <li><code>json</code> — ECMA International. (2017). <em>ECMA-404: The JSON Data Interchange Syntax</em> (2nd ed.). Geneva: ECMA International. <a href="https://www.ecma-international.org/publications-and-standards/standards/ecma-404/">https://www.ecma-international.org/publications-and-standards/standards/ecma-404/</a></li>
+      <li><code>json</code> — Python Software Foundation. <em>json — JSON encoder and decoder</em> [Documentation]. Retrieved from <a href="https://docs.python.org/3/library/json.html">https://docs.python.org/3/library/json.html</a></li>
+    </ul>
+    <p class="note">
+      <code>pathlib</code> and <code>json</code> are part of the Python <strong>standard library</strong>
+      and have no independent publication of their own. The accepted practice is to cite Python itself
+      (Van Rossum &amp; Drake, 2009) and, where the specific module matters, its PEP / underlying
+      standard and official documentation, as listed above.
+    </p>
   </div>
 
 </div><!-- /page -->
