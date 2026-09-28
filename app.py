@@ -104,18 +104,6 @@ with st.sidebar:
             "Trial-and-Error",
         ])
 
-    # When the preset changes, push new demand values into session_state so that
-    # the number_input widgets below render the correct values immediately.
-    if st.session_state.get("_last_preset") != preset_choice:
-        _new_demand = (
-            DEFAULTS["presets"][preset_choice]["demand"]
-            if preset_choice != "Custom"
-            else DEFAULTS["demand"]
-        )
-        for _i, _d in enumerate(_new_demand):
-            st.session_state[f"d_{_i}"] = int(_d)
-        st.session_state["_last_preset"] = preset_choice
-
     uploaded_file = forecast_box.file_uploader(
         "Upload demand series (CSV or Excel)",
         type=["csv", "xlsx", "xls"],
@@ -171,8 +159,26 @@ with st.sidebar:
     if upload_error:
         forecast_box.error(f"⚠️ Upload error: {upload_error}")
 
-    # Decide active periods and demand source
-    if uploaded_periods and not upload_error:
+    # Decide the demand source (uploaded file or preset). When the source changes,
+    # push its values into session_state: a keyed number_input ignores `value=`
+    # once its key exists, so without this the widgets would keep the old series.
+    use_upload = bool(uploaded_periods) and not upload_error
+    if use_upload:
+        source_id = ("upload", getattr(uploaded_file, "file_id", uploaded_file.name))
+        source_demand = uploaded_demand
+    else:
+        source_id = ("preset", preset_choice)
+        source_demand = (
+            DEFAULTS["presets"][preset_choice]["demand"]
+            if preset_choice != "Custom"
+            else DEFAULTS["demand"]
+        )
+    if st.session_state.get("_demand_source") != source_id:
+        for _i, _d in enumerate(source_demand):
+            st.session_state[f"d_{_i}"] = int(_d)
+        st.session_state["_demand_source"] = source_id
+
+    if use_upload:
         active_periods = uploaded_periods
         forecast_box.success(f"✅ Uploaded: {len(active_periods)} periods detected.")
         # Collapsible so long series don't push the model settings far down
@@ -185,26 +191,20 @@ with st.sidebar:
             st.caption("Fine-tune values below if needed:")
             demand_vals = []
             cols = st.columns(2)
-            for i, (period, dval) in enumerate(zip(active_periods, uploaded_demand)):
+            for i, period in enumerate(active_periods):
                 val = cols[i % 2].number_input(
-                    period, min_value=0, max_value=99999,
-                    value=int(dval), step=10, key=f"d_{i}"
+                    period, min_value=0, max_value=99999, step=10, key=f"d_{i}"
                 )
                 demand_vals.append(float(val))
     else:
         # Preset / manual inputs
-        if preset_choice != "Custom":
-            preset_demand = DEFAULTS["presets"][preset_choice]["demand"]
-        else:
-            preset_demand = DEFAULTS["demand"]
         active_periods = DEFAULTS["periods"]
         with data_box.expander(f"📈 Data series ({len(active_periods)} periods)", expanded=False):
             demand_vals = []
             cols = st.columns(2)
             for i, period in enumerate(active_periods):
                 val = cols[i % 2].number_input(
-                    period, min_value=0, max_value=9999,
-                    value=int(preset_demand[i]), step=10, key=f"d_{i}"
+                    period, min_value=0, max_value=9999, step=10, key=f"d_{i}"
                 )
                 demand_vals.append(float(val))
 
@@ -491,16 +491,16 @@ with tabs[1]:
 
     df = pd.DataFrame({
         "Period":        periods,
-        "Demand":        [round(v, 0) for v in result["demand"]],
-        "Production":    [round(v, 0) for v in result["production"]],
-        "Workforce":     [round(v, 1) for v in result["workforce"]],
-        "Hired":         [round(v, 1) for v in result["hired"]],
-        "Fired":         [round(v, 1) for v in result["fired"]],
-        "Inventory":     [round(v, 1) for v in result["inventory"]],
-        "Overtime":      [round(v, 0) for v in result["overtime"]],
-        "Subcontract":   [round(v, 0) for v in result["subcontract"]],
-        "Lost Sales":    [round(v, 0) for v in result["lost_sales"]],
-        "Period Cost($)":[round(v, 0) for v in result["cost_total"]],
+        "Demand":        [round(v, 2) for v in result["demand"]],
+        "Production":    [round(v, 2) for v in result["production"]],
+        "Workforce":     [round(v, 2) for v in result["workforce"]],
+        "Hired":         [round(v, 2) for v in result["hired"]],
+        "Fired":         [round(v, 2) for v in result["fired"]],
+        "Inventory":     [round(v, 2) for v in result["inventory"]],
+        "Overtime":      [round(v, 2) for v in result["overtime"]],
+        "Subcontract":   [round(v, 2) for v in result["subcontract"]],
+        "Lost Sales":    [round(v, 2) for v in result["lost_sales"]],
+        "Period Cost($)":[round(v, 2) for v in result["cost_total"]],
     })
 
     def color_inventory(val):
@@ -527,10 +527,7 @@ with tabs[1]:
           .map(color_inventory, subset=["Inventory"])
           .map(color_cost, subset=["Period Cost($)"])
           .map(color_lost_sales, subset=["Lost Sales"])
-          .format({"Period Cost($)": "${:,.0f}",
-                   "Demand": "{:,.0f}", "Production": "{:,.0f}",
-                   "Overtime": "{:,.0f}", "Subcontract": "{:,.0f}",
-                   "Lost Sales": "{:,.0f}"})
+          .format({"Period Cost($)": "${:,.2f}"}, precision=2, thousands=",")
     )
 
     st.dataframe(styled, width='stretch', height=460)
@@ -601,13 +598,14 @@ with tabs[3]:
 
     wf_stats = pd.DataFrame({
         "Period":    periods,
-        "Workforce": [round(v, 1) for v in result["workforce"]],
-        "Hired":     [round(v, 1) for v in result["hired"]],
-        "Fired":     [round(v, 1) for v in result["fired"]],
-        "Hire Cost ($)": [round(v, 0) for v in result["cost_hire"]],
-        "Fire Cost ($)": [round(v, 0) for v in result["cost_fire"]],
+        "Workforce": [round(v, 2) for v in result["workforce"]],
+        "Hired":     [round(v, 2) for v in result["hired"]],
+        "Fired":     [round(v, 2) for v in result["fired"]],
+        "Hire Cost ($)": [round(v, 2) for v in result["cost_hire"]],
+        "Fire Cost ($)": [round(v, 2) for v in result["cost_fire"]],
     })
-    st.dataframe(wf_stats, width='stretch', hide_index=True)
+    st.dataframe(wf_stats.style.format(precision=2, thousands=","),
+                 width='stretch', hide_index=True)
 
 # ─────────────────────────────────────────────
 # Tab 4 — Cost Breakdown
@@ -653,8 +651,8 @@ with tabs[4]:
 
     cost_summary = pd.DataFrame({
         "Category": list(totals.keys()),
-        "Total ($)": [f"${v:,.0f}" for v in totals.values()],
-        "Share (%)": [f"{v/result['grand_total']*100:.1f}%" for v in totals.values()],
+        "Total ($)": [f"${v:,.2f}" for v in totals.values()],
+        "Share (%)": [f"{v/result['grand_total']*100:.2f}%" for v in totals.values()],
     })
     col_table.dataframe(cost_summary, width='stretch', hide_index=True)
 
@@ -690,10 +688,7 @@ with tabs[5]:
 
         st.dataframe(
             df_cmp.style.apply(highlight_min, subset=["Total Cost ($)"])
-                        .format({"Total Cost ($)": "${:,.0f}",
-                                 "Total Hired": "{:.1f}", "Total Fired": "{:.1f}",
-                                 "Avg Inventory": "{:.1f}",
-                                 "Total OT Units": "{:.1f}", "Total Sub Units": "{:.1f}"}),
+                        .format({"Total Cost ($)": "${:,.2f}"}, precision=2, thousands=","),
             width='stretch', hide_index=True,
         )
 
@@ -773,8 +768,8 @@ if strategy == "Transportation Method":
                 return "color: #aaa;"
 
             st.dataframe(
-                tdf.style.applymap(style_alloc, subset=periods)
-                         .format("{:.0f}"),
+                tdf.style.map(style_alloc, subset=periods)
+                         .format(precision=2, thousands=","),
                 width='stretch',
                 height=min(60 + len(sources) * 38, 600),
             )
@@ -808,7 +803,8 @@ this is the <em>true marginal cost of one unit of demand in that period</em>.
                 "Inventory Balance SP ($)": [round(v, 2) for v in sp.get("Inventory Balance", [0]*T)],
                 "Workforce Balance SP ($)": [round(v, 2) for v in sp.get("Workforce Balance", [0]*T)],
             })
-            st.dataframe(sp_df, width='stretch', hide_index=True)
+            st.dataframe(sp_df.style.format(precision=2, thousands=","),
+                         width='stretch', hide_index=True)
 
             fig_sp = go.Figure()
             fig_sp.add_bar(x=periods, y=sp["Inventory Balance"], name="Inventory Balance",

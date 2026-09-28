@@ -644,13 +644,13 @@ def compare_all(periods, demand, costs, capacity, initial_workforce,
                shortage_policy=shortage_policy)
         rows.append({
             "Strategy":       name,
-            "Total Cost ($)": round(r["grand_total"], 0),
-            "Total Hired":    round(sum(r["hired"]), 1),
-            "Total Fired":    round(sum(r["fired"]), 1),
-            "Avg Inventory":  round(sum(r["inventory"]) / len(periods), 1),
-            "Total OT Units": round(sum(r["overtime"]), 1),
-            "Total Sub Units":round(sum(r["subcontract"]), 1),
-            "Lost Sales":     round(sum(r["lost_sales"]), 1),
+            "Total Cost ($)": round(r["grand_total"], 2),
+            "Total Hired":    round(sum(r["hired"]), 2),
+            "Total Fired":    round(sum(r["fired"]), 2),
+            "Avg Inventory":  round(sum(r["inventory"]) / len(periods), 2),
+            "Total OT Units": round(sum(r["overtime"]), 2),
+            "Total Sub Units":round(sum(r["subcontract"]), 2),
+            "Lost Sales":     round(sum(r["lost_sales"]), 2),
             "Feasible":       r["feasible"],
         })
     return pd.DataFrame(rows)
