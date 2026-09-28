@@ -82,10 +82,27 @@ with st.sidebar:
         st.caption("Open the downloaded file in any browser — works offline.")
         st.divider()
 
-    # Forecast section
-    st.markdown("### 📊 Forecast")
-    preset_names = ["Custom"] + list(DEFAULTS["presets"].keys())
-    preset_choice = st.selectbox("📂 Load Preset Scenario", preset_names)
+    # All sidebar sections are collapsible expanders and start collapsed.
+    # Streamlit does not allow nested expanders, so "Data series" is a sibling
+    # of "Forecast", placed right below it through the data_box placeholder.
+
+    # Forecast section — the uploader and its messages are added below via forecast_box
+    forecast_box = st.expander("📊 Forecast", expanded=False)
+    with forecast_box:
+        preset_names = ["Custom"] + list(DEFAULTS["presets"].keys())
+        preset_choice = st.selectbox("📂 Load Preset Scenario", preset_names)
+    data_box = st.container()
+
+    # Strategy selector
+    with st.expander("🎯 Strategy", expanded=False):
+        strategy = st.selectbox("Select Strategy", [
+            "Chase Demand",
+            "Level Production",
+            "Mixed / Hybrid",
+            "Linear Programming (LP)",
+            "Transportation Method",
+            "Trial-and-Error",
+        ])
 
     # When the preset changes, push new demand values into session_state so that
     # the number_input widgets below render the correct values immediately.
@@ -99,19 +116,7 @@ with st.sidebar:
             st.session_state[f"d_{_i}"] = int(_d)
         st.session_state["_last_preset"] = preset_choice
 
-    # Strategy selector — kept at top for easy access
-    st.markdown("### 🎯 Strategy")
-    strategy = st.selectbox("Select Strategy", [
-        "Chase Demand",
-        "Level Production",
-        "Mixed / Hybrid",
-        "Linear Programming (LP)",
-        "Transportation Method",
-        "Trial-and-Error",
-    ])
-    st.divider()
-
-    uploaded_file = st.file_uploader(
+    uploaded_file = forecast_box.file_uploader(
         "Upload demand series (CSV or Excel)",
         type=["csv", "xlsx", "xls"],
         help=(
@@ -164,26 +169,28 @@ with st.sidebar:
             upload_error = str(e)
 
     if upload_error:
-        st.error(f"⚠️ Upload error: {upload_error}")
+        forecast_box.error(f"⚠️ Upload error: {upload_error}")
 
     # Decide active periods and demand source
     if uploaded_periods and not upload_error:
         active_periods = uploaded_periods
-        st.success(f"✅ Uploaded: {len(active_periods)} periods detected.")
-        st.dataframe(
-            pd.DataFrame({"Period": uploaded_periods, "Demand": uploaded_demand}),
-            width='stretch', hide_index=True, height=200,
-        )
-        # Still allow fine-tuning via number inputs
-        st.caption("Fine-tune values below if needed:")
-        demand_vals = []
-        cols = st.columns(2)
-        for i, (period, dval) in enumerate(zip(active_periods, uploaded_demand)):
-            val = cols[i % 2].number_input(
-                period, min_value=0, max_value=99999,
-                value=int(dval), step=10, key=f"d_{i}"
+        forecast_box.success(f"✅ Uploaded: {len(active_periods)} periods detected.")
+        # Collapsible so long series don't push the model settings far down
+        with data_box.expander(f"📈 Data series ({len(active_periods)} periods)", expanded=False):
+            st.dataframe(
+                pd.DataFrame({"Period": uploaded_periods, "Demand": uploaded_demand}),
+                width='stretch', hide_index=True, height=200,
             )
-            demand_vals.append(float(val))
+            # Still allow fine-tuning via number inputs
+            st.caption("Fine-tune values below if needed:")
+            demand_vals = []
+            cols = st.columns(2)
+            for i, (period, dval) in enumerate(zip(active_periods, uploaded_demand)):
+                val = cols[i % 2].number_input(
+                    period, min_value=0, max_value=99999,
+                    value=int(dval), step=10, key=f"d_{i}"
+                )
+                demand_vals.append(float(val))
     else:
         # Preset / manual inputs
         if preset_choice != "Custom":
@@ -191,96 +198,89 @@ with st.sidebar:
         else:
             preset_demand = DEFAULTS["demand"]
         active_periods = DEFAULTS["periods"]
-        demand_vals = []
-        cols = st.columns(2)
-        for i, period in enumerate(active_periods):
-            val = cols[i % 2].number_input(
-                period, min_value=0, max_value=9999,
-                value=int(preset_demand[i]), step=10, key=f"d_{i}"
-            )
-            demand_vals.append(float(val))
-
-    st.divider()
+        with data_box.expander(f"📈 Data series ({len(active_periods)} periods)", expanded=False):
+            demand_vals = []
+            cols = st.columns(2)
+            for i, period in enumerate(active_periods):
+                val = cols[i % 2].number_input(
+                    period, min_value=0, max_value=9999,
+                    value=int(preset_demand[i]), step=10, key=f"d_{i}"
+                )
+                demand_vals.append(float(val))
 
     # Initial conditions
-    st.markdown("### 🏭 Initial Conditions")
-    c1, c2 = st.columns(2)
-    init_inv = c1.number_input("Starting Inventory", 0, 5000, DEFAULTS["initial_inventory"], 10)
-    init_wf  = c2.number_input("Starting Workforce", 1, 200,  DEFAULTS["initial_workforce"], 1)
-    productivity = st.number_input("Units / Worker / Period", 1, 500,
-                                   DEFAULTS["productivity"], 1)
-    st.divider()
+    with st.expander("🏭 Initial Conditions", expanded=False):
+        c1, c2 = st.columns(2)
+        init_inv = c1.number_input("Starting Inventory", 0, 5000, DEFAULTS["initial_inventory"], 10)
+        init_wf  = c2.number_input("Starting Workforce", 1, 200,  DEFAULTS["initial_workforce"], 1)
+        productivity = st.number_input("Units / Worker / Period", 1, 500,
+                                       DEFAULTS["productivity"], 1)
 
     # Cost parameters
-    st.markdown("### 💰 Cost Parameters ($ per unit / worker)")
-    costs = {}
-    cost_keys = [
-        ("regular_time", "Regular-Time Labour ($/unit)"),
-        ("hiring",       "Hiring Cost ($/worker)"),
-        ("firing",       "Firing / Layoff Cost ($/worker)"),
-        ("holding",      "Inventory Holding ($/unit·period)"),
-        ("backorder",    "Backorder Penalty ($/unit·period)"),
-        ("overtime",     "Overtime ($/unit)"),
-        ("subcontracting","Subcontracting ($/unit)"),
-    ]
-    for key, label in cost_keys:
-        costs[key] = st.number_input(label, 0, 99999,
-                                     int(DEFAULTS["costs"][key]), 10,
-                                     key=f"c_{key}")
-
-    st.divider()
+    with st.expander("💰 Cost Parameters ($ per unit / worker)", expanded=False):
+        costs = {}
+        cost_keys = [
+            ("regular_time", "Regular-Time Labour ($/unit)"),
+            ("hiring",       "Hiring Cost ($/worker)"),
+            ("firing",       "Firing / Layoff Cost ($/worker)"),
+            ("holding",      "Inventory Holding ($/unit·period)"),
+            ("backorder",    "Backorder Penalty ($/unit·period)"),
+            ("overtime",     "Overtime ($/unit)"),
+            ("subcontracting","Subcontracting ($/unit)"),
+        ]
+        for key, label in cost_keys:
+            costs[key] = st.number_input(label, 0, 99999,
+                                         int(DEFAULTS["costs"][key]), 10,
+                                         key=f"c_{key}")
 
     # Capacity
-    st.markdown("### ⚙️ Capacity Constraints")
-    max_wf    = st.number_input("Max Workforce",             1,  500, int(DEFAULTS["capacity"]["max_workforce"]),  1)
-    max_ot    = st.slider("Max Overtime Fraction",           0.0, 0.5, float(DEFAULTS["capacity"]["max_overtime_fraction"]), 0.05)
-    max_sub   = st.number_input("Max Subcontract / Period",  0, 5000, int(DEFAULTS["capacity"]["max_subcontract_per_period"]), 50)
+    with st.expander("⚙️ Capacity Constraints", expanded=False):
+        max_wf    = st.number_input("Max Workforce",             1,  500, int(DEFAULTS["capacity"]["max_workforce"]),  1)
+        max_ot    = st.slider("Max Overtime Fraction",           0.0, 0.5, float(DEFAULTS["capacity"]["max_overtime_fraction"]), 0.05)
+        max_sub   = st.number_input("Max Subcontract / Period",  0, 5000, int(DEFAULTS["capacity"]["max_subcontract_per_period"]), 50)
 
     capacity = {
         "max_workforce": max_wf,
         "max_overtime_fraction": max_ot,
         "max_subcontract_per_period": max_sub,
     }
-    st.divider()
 
     # Variable Types
-    st.markdown("### 🔢 Variable Types")
-    st.caption("Force decision variables to be whole numbers (integers).")
-    integer_wf   = st.checkbox(
-        "Integer workforce — hired/fired/workers must be whole numbers",
-        value=False,
-        help="Applies to workforce level, hiring, and firing variables.",
-    )
-    integer_prod = st.checkbox(
-        "Integer production — units produced / OT / subcontract must be whole numbers",
-        value=False,
-        help="Applies to regular-time production, overtime, and subcontracted units.",
-    )
-    st.divider()
+    with st.expander("🔢 Variable Types", expanded=False):
+        st.caption("Force decision variables to be whole numbers (integers).")
+        integer_wf   = st.checkbox(
+            "Integer workforce — hired/fired/workers must be whole numbers",
+            value=False,
+            help="Applies to workforce level, hiring, and firing variables.",
+        )
+        integer_prod = st.checkbox(
+            "Integer production — units produced / OT / subcontract must be whole numbers",
+            value=False,
+            help="Applies to regular-time production, overtime, and subcontracted units.",
+        )
 
     # Shortage Policy
-    st.markdown("### 📋 Shortage Policy")
-    shortage_policy = st.radio(
-        "How to handle unmet demand:",
-        options=["backorders", "no_shortages", "lost_sales"],
-        format_func=lambda x: {
-            "backorders":   "Backorders — demand fulfilled late (penalty cost)",
-            "no_shortages": "No Shortages — demand must always be met",
-            "lost_sales":   "Lost Sales — unmet demand is lost forever",
-        }[x],
-        index=0,
-        help="Backorders allow negative inventory. No-shortages forces feasibility. Lost sales drop demand permanently.",
-    )
-    if shortage_policy == "lost_sales":
-        costs["lost_sales"] = st.number_input(
-            "Lost Sales Penalty ($/unit)",
-            min_value=0, max_value=99999,
-            value=int(DEFAULTS["costs"].get("lost_sales", 50)),
-            step=10, key="c_lost_sales",
+    with st.expander("📋 Shortage Policy", expanded=False):
+        shortage_policy = st.radio(
+            "How to handle unmet demand:",
+            options=["backorders", "no_shortages", "lost_sales"],
+            format_func=lambda x: {
+                "backorders":   "Backorders — demand fulfilled late (penalty cost)",
+                "no_shortages": "No Shortages — demand must always be met",
+                "lost_sales":   "Lost Sales — unmet demand is lost forever",
+            }[x],
+            index=0,
+            help="Backorders allow negative inventory. No-shortages forces feasibility. Lost sales drop demand permanently.",
         )
-    else:
-        costs["lost_sales"] = 0.0
-    st.divider()
+        if shortage_policy == "lost_sales":
+            costs["lost_sales"] = st.number_input(
+                "Lost Sales Penalty ($/unit)",
+                min_value=0, max_value=99999,
+                value=int(DEFAULTS["costs"].get("lost_sales", 50)),
+                step=10, key="c_lost_sales",
+            )
+        else:
+            costs["lost_sales"] = 0.0
 
 
 # ─────────────────────────────────────────────
